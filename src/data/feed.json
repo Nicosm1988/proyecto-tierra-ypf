@@ -1,0 +1,112 @@
+[
+  {
+    "id": "feed-001",
+    "siteId": "ypf-torre",
+    "category": "industria-mercado",
+    "title": "Radar ejecutivo consolida 24 frentes activos para decision diaria",
+    "source": "ECOA Inteligencia",
+    "country": "Argentina",
+    "date": "2026-06-19",
+    "priority": "baja",
+    "tags": ["Estrategia", "Action board"]
+  },
+  {
+    "id": "feed-002",
+    "siteId": "vaca-muerta",
+    "category": "produccion",
+    "title": "Vaca Muerta concentra alertas de expansion y cuello logistico",
+    "source": "Operacion upstream",
+    "country": "Argentina",
+    "date": "2026-06-18",
+    "priority": "alta",
+    "tags": ["No convencional", "Ductos"]
+  },
+  {
+    "id": "feed-003",
+    "siteId": "refineria-la-plata",
+    "category": "downstream",
+    "title": "La Plata sostiene disponibilidad alta en tablero de refinacion",
+    "source": "Downstream YPF",
+    "country": "Argentina",
+    "date": "2026-06-17",
+    "priority": "alta",
+    "tags": ["Refinacion", "Abastecimiento"]
+  },
+  {
+    "id": "feed-004",
+    "siteId": "terminal-san-lorenzo",
+    "category": "logistica",
+    "title": "San Lorenzo mejora visibilidad de despachos para corredor centro",
+    "source": "Logistica comercial",
+    "country": "Argentina",
+    "date": "2026-06-13",
+    "priority": "baja",
+    "tags": ["Terminal", "Litoral"]
+  },
+  {
+    "id": "feed-005",
+    "siteId": "lujan-cuyo",
+    "category": "transformacion",
+    "title": "Lujan de Cuyo prioriza modernizacion y eficiencia de lineas criticas",
+    "source": "Transformacion industrial",
+    "country": "Argentina",
+    "date": "2026-06-11",
+    "priority": "media",
+    "tags": ["Modernizacion", "Cuyo"]
+  },
+  {
+    "id": "feed-006",
+    "siteId": "terminal-bahia-blanca",
+    "category": "industria-mercado",
+    "title": "Bahia Blanca suma ventanas de exportacion y abastecimiento costero",
+    "source": "Mercado energetico",
+    "country": "Argentina",
+    "date": "2026-06-09",
+    "priority": "media",
+    "tags": ["Puerto", "Exportacion"]
+  },
+  {
+    "id": "feed-007",
+    "siteId": "plaza-huincul",
+    "category": "downstream",
+    "title": "Plaza Huincul profundiza sinergia regional con Neuquen",
+    "source": "Operacion regional",
+    "country": "Argentina",
+    "date": "2026-06-05",
+    "priority": "media",
+    "tags": ["Refinacion", "Neuquen"]
+  },
+  {
+    "id": "feed-008",
+    "siteId": "mendoza-data",
+    "category": "analitica",
+    "title": "Centro Mendoza actualiza alertas de Cuyo para tablero diario",
+    "source": "Analitica territorial",
+    "country": "Argentina",
+    "date": "2026-06-02",
+    "priority": "baja",
+    "tags": ["Analitica", "Operacion"]
+  },
+  {
+    "id": "feed-009",
+    "siteId": "oleoducto-trasandino",
+    "category": "logistica",
+    "title": "Oleoducto Trasandino aparece como eje de salida regional",
+    "source": "Infraestructura",
+    "country": "Argentina",
+    "date": "2026-05-28",
+    "priority": "alta",
+    "tags": ["Ductos", "Chile"]
+  },
+  {
+    "id": "feed-010",
+    "siteId": "renovables-manantiales",
+    "category": "sostenimiento-transformacion",
+    "title": "Manantiales Behr sostiene aporte renovable para matriz integrada",
+    "source": "Energia renovable",
+    "country": "Argentina",
+    "date": "2026-05-25",
+    "priority": "media",
+    "tags": ["Eolica", "Transicion"]
+  }
+]

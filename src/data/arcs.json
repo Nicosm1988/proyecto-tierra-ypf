@@ -1,0 +1,65 @@
+[
+  {
+    "id": "vm-la-plata",
+    "from": "vaca-muerta",
+    "to": "refineria-la-plata",
+    "kind": "crudo",
+    "intensity": 0.92
+  },
+  {
+    "id": "vm-lujan",
+    "from": "vaca-muerta",
+    "to": "lujan-cuyo",
+    "kind": "crudo",
+    "intensity": 0.78
+  },
+  {
+    "id": "vm-plaza",
+    "from": "vaca-muerta",
+    "to": "plaza-huincul",
+    "kind": "sinergia",
+    "intensity": 0.86
+  },
+  {
+    "id": "vm-otasa",
+    "from": "vaca-muerta",
+    "to": "oleoducto-trasandino",
+    "kind": "exportacion",
+    "intensity": 0.88
+  },
+  {
+    "id": "la-plata-bahia",
+    "from": "refineria-la-plata",
+    "to": "terminal-bahia-blanca",
+    "kind": "abastecimiento",
+    "intensity": 0.64
+  },
+  {
+    "id": "hq-vaca-muerta",
+    "from": "ypf-torre",
+    "to": "vaca-muerta",
+    "kind": "decision",
+    "intensity": 0.58
+  },
+  {
+    "id": "hq-lujan",
+    "from": "ypf-torre",
+    "to": "lujan-cuyo",
+    "kind": "decision",
+    "intensity": 0.46
+  },
+  {
+    "id": "manantiales-hq",
+    "from": "renovables-manantiales",
+    "to": "ypf-torre",
+    "kind": "energia",
+    "intensity": 0.5
+  },
+  {
+    "id": "san-lorenzo-la-plata",
+    "from": "terminal-san-lorenzo",
+    "to": "refineria-la-plata",
+    "kind": "abastecimiento",
+    "intensity": 0.42
+  }
+]
