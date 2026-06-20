@@ -8,12 +8,12 @@ function getNumberEnv(value, fallback) {
 }
 
 export const publicEnv = {
-  appName: import.meta.env.VITE_APP_NAME || "ECOA Tierra YPF",
+  appName: import.meta.env.VITE_APP_NAME || "YPF GeoEnergia 3D",
   cesiumIonToken: import.meta.env.VITE_CESIUM_ION_TOKEN || "",
   defaultCamera: {
-    height: getNumberEnv(import.meta.env.VITE_DEFAULT_HEIGHT, 8_800_000),
-    lat: getNumberEnv(import.meta.env.VITE_DEFAULT_LAT, -34.2),
-    lng: getNumberEnv(import.meta.env.VITE_DEFAULT_LON, -60.8)
+    height: getNumberEnv(import.meta.env.VITE_DEFAULT_HEIGHT, 16_500_000),
+    lat: getNumberEnv(import.meta.env.VITE_DEFAULT_LAT, -36.5),
+    lng: getNumberEnv(import.meta.env.VITE_DEFAULT_LON, -64.5)
   },
   enableGooglePhotorealisticTiles: getBooleanEnv(
     import.meta.env.VITE_ENABLE_GOOGLE_PHOTOREALISTIC_TILES

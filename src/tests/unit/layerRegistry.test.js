@@ -2,23 +2,28 @@ import { describe, expect, it } from "vitest";
 import {
   getEnabledLayerCount,
   initialLayerVisibility,
-  isSiteVisibleByLayers,
+  isInfrastructureVisibleByLayers,
   layerGroups
 } from "../../earth/layerRegistry.js";
 
 describe("layerRegistry", () => {
-  it("defines grouped premium layers enabled by default", () => {
-    expect(layerGroups.length).toBeGreaterThanOrEqual(5);
-    expect(getEnabledLayerCount(initialLayerVisibility)).toBeGreaterThanOrEqual(8);
+  it("defines real infrastructure layers enabled by default", () => {
+    const layers = layerGroups.flatMap((group) => group.layers);
+
+    expect(layerGroups).toHaveLength(2);
+    expect(layers.map((layer) => layer.id)).toContain("rv-ypf-pipelines");
+    expect(layers.map((layer) => layer.id)).toContain("rv-installations");
+    expect(getEnabledLayerCount(initialLayerVisibility)).toBe(layers.length);
   });
 
-  it("maps site visibility to layer toggles", () => {
-    const site = { type: "upstream" };
-    expect(isSiteVisibleByLayers(site, initialLayerVisibility)).toBe(true);
+  it("maps infrastructure visibility to layer toggles", () => {
+    const pipeline = { layerId: "rv-ypf-pipelines" };
+
+    expect(isInfrastructureVisibleByLayers(pipeline, initialLayerVisibility)).toBe(true);
     expect(
-      isSiteVisibleByLayers(site, {
+      isInfrastructureVisibleByLayers(pipeline, {
         ...initialLayerVisibility,
-        "sites-upstream": false
+        "rv-ypf-pipelines": false
       })
     ).toBe(false);
   });

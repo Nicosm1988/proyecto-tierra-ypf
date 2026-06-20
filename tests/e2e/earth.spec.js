@@ -11,33 +11,41 @@ test.beforeEach(async ({ page }) => {
   page.errors = errors;
 });
 
-test("loads the premium Earth experience", async ({ page }) => {
+test("loads the YPF geospatial experience", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle(/ECOA Tierra YPF/);
-  await expect(page.getByLabel("Cargando ECOA Tierra")).toBeHidden({ timeout: 8_000 });
-  await expect(page.getByLabel("Centro de control geoespacial")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Vista global/i })).toBeVisible();
+  await expect(page).toHaveTitle(/YPF GeoEnergia 3D/);
+  await expect(page.getByLabel("Cargando YPF GeoEnergia 3D")).toBeHidden({
+    timeout: 8_000
+  });
+  const missionControl = page.getByLabel("Mission Control");
+  await expect(missionControl).toBeVisible();
+  await expect(
+    missionControl.getByRole("button", { name: /Tierra completa/i })
+  ).toBeVisible();
   await expect(page.locator(".cesium-widget canvas")).toBeVisible();
   expect(page.errors).toEqual([]);
 });
 
-test("toggles a layer and starts a tour", async ({ page }, testInfo) => {
+test("toggles real infrastructure layers", async ({ page }, testInfo) => {
   test.skip(
     testInfo.project.name === "mobile",
-    "Mobile shell coverage is handled by the load test; this interaction uses desktop HUD space."
+    "Mobile shell coverage is handled by the load test; this interaction uses desktop controls."
   );
 
   await page.goto("/");
-  await expect(page.getByLabel("Cargando ECOA Tierra")).toBeHidden({ timeout: 8_000 });
+  await expect(page.getByLabel("Cargando YPF GeoEnergia 3D")).toBeHidden({
+    timeout: 8_000
+  });
 
-  await page.getByRole("button", { name: /Capas/i }).click();
-  await page.getByRole("button", { name: /Fronteras politicas/i }).click();
-  await expect(page.getByRole("button", { name: /Fronteras politicas/i })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
-
-  await page.getByRole("button", { name: /Tour YPF/i }).dispatchEvent("click");
-  await expect(page.getByRole("button", { name: /Pausar/i }).first()).toBeVisible();
+  const ductosYpf = page.locator(".layer-chip").filter({ hasText: "Ductos YPF" });
+  await ductosYpf.dispatchEvent("click");
+  await expect(ductosYpf).toHaveAttribute("aria-pressed", "false");
+  await ductosYpf.dispatchEvent("click");
+  await expect(ductosYpf).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByLabel("Mission Control")
+    .getByRole("button", { name: /Vaca Muerta/i })
+    .dispatchEvent("click");
+  await expect(page.locator(".cesium-widget-errorPanel")).toHaveCount(0);
   expect(page.errors).toEqual([]);
 });

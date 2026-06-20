@@ -18,7 +18,7 @@ export async function loadGooglePhotorealisticTiles(viewer) {
   );
 
   viewer.scene.primitives.add(tileset);
-  viewer.scene.globe.show = false;
+  viewer.scene.globe.show = true;
 
   return {
     loaded: true,

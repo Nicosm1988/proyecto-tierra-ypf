@@ -9,12 +9,13 @@ vi.mock("../../globe/EarthGlobe.jsx", () => ({
 }));
 
 describe("App", () => {
-  it("renders the premium shell, HUD and Cesium placeholder", () => {
+  it("renders the geospatial shell, layer controls and Cesium placeholder", () => {
     render(<App />);
 
-    expect(screen.getByText("ESTRATEGIA")).toBeInTheDocument();
-    expect(screen.getByText("Mission control")).toBeInTheDocument();
-    expect(screen.getByText("Vista global")).toBeInTheDocument();
+    expect(screen.getAllByText("YPF GeoEnergia 3D").length).toBeGreaterThan(0);
+    expect(screen.getByText("Mission Control")).toBeInTheDocument();
+    expect(screen.getByText("Tierra completa")).toBeInTheDocument();
+    expect(screen.getByText("Ductos YPF")).toBeInTheDocument();
     expect(screen.getByTestId("earth-viewer")).toBeInTheDocument();
   });
 });

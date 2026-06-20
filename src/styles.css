@@ -83,20 +83,24 @@ button {
   position: absolute;
 }
 
-.loading-limb {
+.loading-orb {
   background:
-    radial-gradient(ellipse at 50% 18%, rgba(56, 189, 248, 0.65), transparent 8%),
-    radial-gradient(ellipse at 50% 20%, rgba(248, 250, 252, 0.86), transparent 10%),
-    radial-gradient(ellipse at 50% 18%, rgba(64, 113, 175, 0.72), transparent 18%),
-    linear-gradient(95deg, rgba(50, 82, 126, 0.78), rgba(123, 95, 72, 0.9));
-  border-radius: 50% 50% 0 0;
-  bottom: -42dvh;
-  filter: saturate(1.08);
-  height: 58dvh;
+    radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.28), transparent 11%),
+    radial-gradient(circle at 52% 49%, transparent 42%, rgba(0, 0, 0, 0.76) 76%),
+    url("/assets/earth-night.jpg") 30% 55% / 178% auto;
+  border: 1px solid rgba(125, 211, 252, 0.42);
+  border-radius: 50%;
+  bottom: -28vmin;
+  box-shadow:
+    0 0 34px rgba(56, 189, 248, 0.42),
+    inset -42px -28px 72px rgba(0, 0, 0, 0.74),
+    inset 22px 12px 34px rgba(186, 230, 253, 0.18);
+  filter: saturate(1.08) contrast(1.04);
+  height: min(82vmin, 760px);
   position: absolute;
-  right: -8vw;
-  transform: rotate(-7deg);
-  width: 118vw;
+  right: max(5vw, 40px);
+  transform: rotate(-9deg);
+  width: min(82vmin, 760px);
 }
 
 .loading-brand {
@@ -146,8 +150,8 @@ button {
   border-bottom: 1px solid var(--line);
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(288px, 390px) minmax(560px, 1fr) minmax(118px, 156px);
-  min-height: 138px;
+  grid-template-columns: minmax(300px, 430px) minmax(560px, 1fr) minmax(98px, 128px);
+  min-height: 190px;
   padding: 18px 22px;
 }
 
@@ -195,14 +199,21 @@ button {
 
 .brand-title {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 
 .brand-title strong {
-  font-size: 1.58rem;
+  font-size: 1.5rem;
   line-height: 1.05;
   overflow-wrap: anywhere;
+}
+
+.brand-title span {
+  color: rgba(248, 250, 252, 0.66);
+  font-size: 0.82rem;
+  font-weight: 760;
+  line-height: 1.25;
 }
 
 .nav-tabs {
@@ -259,6 +270,116 @@ button {
   min-width: 0;
 }
 
+.mission-strip {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mission-heading {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 0.95fr) minmax(420px, 1.25fr);
+  min-width: 0;
+}
+
+.mission-heading > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mission-heading strong {
+  font-size: 0.92rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mission-heading span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mission-metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(96px, 1fr));
+  min-width: 0;
+}
+
+.mission-metrics span {
+  align-items: center;
+  background: rgba(8, 17, 30, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 7px;
+  color: rgba(248, 250, 252, 0.78);
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 8px;
+}
+
+.mission-metrics svg {
+  color: var(--blue);
+  flex: 0 0 auto;
+}
+
+.mission-actions,
+.layer-ribbon {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(112px, 1fr));
+  min-width: 0;
+  padding-bottom: 2px;
+}
+
+.layer-ribbon {
+  grid-template-columns: repeat(7, minmax(88px, 1fr));
+}
+
+.mission-actions button,
+.layer-chip {
+  align-items: center;
+  background: rgba(8, 17, 30, 0.82);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 7px;
+  color: rgba(248, 250, 252, 0.76);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 900;
+  gap: 7px;
+  justify-content: center;
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.mission-actions button:hover,
+.mission-actions button.active,
+.layer-chip:hover,
+.layer-chip.active {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.62);
+  color: #f8fafc;
+}
+
+.mission-actions span,
+.layer-chip span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.layer-chip[aria-pressed="false"] {
+  color: rgba(148, 163, 184, 0.54);
+  opacity: 0.62;
+}
+
 .partner-lockup {
   align-items: center;
   color: rgba(248, 250, 252, 0.62);
@@ -284,14 +405,14 @@ button {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 426px;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
 }
 
 .globe-stage {
   background:
     radial-gradient(circle at 50% 46%, rgba(14, 54, 82, 0.28), transparent 42%), #01040b;
-  border-right: 1px solid rgba(56, 189, 248, 0.24);
+  border-right: 0;
   min-width: 0;
   overflow: hidden;
   position: relative;
@@ -1081,7 +1202,7 @@ button {
 
 @media (max-width: 1320px) {
   .top-bar {
-    grid-template-columns: minmax(250px, 330px) minmax(480px, 1fr) minmax(108px, 136px);
+    grid-template-columns: minmax(250px, 350px) minmax(480px, 1fr) minmax(96px, 120px);
     padding-inline: 16px;
   }
 
@@ -1103,6 +1224,10 @@ button {
 
   .nav-tab {
     padding-inline: 10px;
+  }
+
+  .mission-heading {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1127,6 +1252,14 @@ button {
 
   .top-actions {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mission-top {
+    align-items: stretch;
+  }
+
+  .mission-metrics {
+    grid-template-columns: repeat(4, minmax(86px, 1fr));
   }
 
   .workspace {
@@ -1208,7 +1341,7 @@ button {
     display: grid;
     left: 10px;
     right: 10px;
-    top: 214px;
+    top: 12px;
   }
 
   .toolbar-cluster {
@@ -1232,6 +1365,18 @@ button {
   .rotation-toggle {
     justify-content: center;
     width: 100%;
+  }
+
+  .mission-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mission-actions,
+  .layer-ribbon {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(142px, 1fr);
+    grid-template-columns: none;
+    overflow-x: auto;
   }
 
   .premium-hud {

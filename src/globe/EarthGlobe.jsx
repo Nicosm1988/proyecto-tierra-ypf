@@ -1,5 +1,4 @@
 import {
-  ArcType,
   ArcGISTiledElevationTerrainProvider,
   BoundingSphere,
   Cartesian2,
@@ -13,6 +12,7 @@ import {
   ImageryLayer,
   Matrix4,
   Math as CesiumMath,
+  PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
   SceneMode,
   ScreenSpaceEventHandler,
@@ -39,186 +39,211 @@ import {
   RotateCw
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { typeMeta } from "../constants.js";
 import { isLayerEnabled } from "../earth/layerRegistry.js";
-import { loadGooglePhotorealisticTiles } from "../earth/googlePhotorealisticTiles.js";
 import { prefersReducedMotion, publicEnv } from "../utils/env.js";
 
 const initialCamera = publicEnv.defaultCamera;
 const globalCameraPitch = -90;
-
-const siteCameraHeight = {
-  alta: 18_000,
-  media: 28_000,
-  baja: 42_000
-};
 
 const terrainUrl =
   "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer";
 
 const navigationStepRatio = 0.22;
 
-function colorFromType(type, alpha = 1) {
-  const base = Color.fromCssColorString(typeMeta[type].color);
-  return Color.fromAlpha(base, alpha);
+const layerStyles = {
+  "rv-installations": {
+    color: "#2dd4bf",
+    label: "#06111f"
+  },
+  "rv-midstream-construction": {
+    color: "#ff4d57",
+    label: "#ffffff"
+  },
+  "rv-midstream-project": {
+    color: "#a78bfa",
+    label: "#ffffff"
+  },
+  "rv-transport-pipelines": {
+    color: "#38bdf8",
+    label: "#06111f"
+  },
+  "rv-ypf-pipelines": {
+    color: "#fbbf24",
+    label: "#06111f"
+  }
+};
+
+function styleForLayer(layerId) {
+  return layerStyles[layerId] ?? layerStyles["rv-installations"];
 }
 
-function arcColor(kind) {
-  if (kind === "decision") {
-    return Color.fromCssColorString("#a78bfa");
-  }
-
-  if (kind === "exportacion") {
-    return Color.fromCssColorString("#22c55e");
-  }
-
-  if (kind === "energia") {
-    return Color.fromCssColorString("#fbbf24");
-  }
-
-  return Color.fromCssColorString("#38bdf8");
+function colorForLayer(layerId, alpha = 1) {
+  return Color.fromAlpha(Color.fromCssColorString(styleForLayer(layerId).color), alpha);
 }
 
-function siteDescription(site) {
+function parseDiameter(value) {
+  if (!value) {
+    return null;
+  }
+
+  const match = String(value).match(/[0-9]+(?:[.,][0-9]+)?/);
+  return match ? Number(match[0].replace(",", ".")) : null;
+}
+
+function formatRouteQuality(value) {
+  return value === "endpoints-resueltos"
+    ? "Extremos resueltos por atributos"
+    : "Traza derivada por atributos";
+}
+
+function installationDescription(item) {
   return `
-    <strong>${site.name}</strong><br />
-    ${typeMeta[site.type].label} - ${site.region}<br />
-    ${site.status}
+    <strong>${item.name}</strong><br />
+    ${item.type}<br />
+    Estado: ${item.status}<br />
+    Fuente: ${item.sourceFile}
   `;
 }
 
-function makeSiteEntity(site, selectedId) {
-  const selected = site.id === selectedId;
-  const color = colorFromType(site.type);
-  const labelVisibleTo = selected ? 12_000_000 : 7_000_000;
+function pipelineDescription(item) {
+  return `
+    <strong>${item.name}</strong><br />
+    ${item.origin || "Origen s/d"} -> ${item.destination || "Destino s/d"}<br />
+    Estado: ${item.status}<br />
+    Fuente: ${item.sourceFile}<br />
+    ${formatRouteQuality(item.geometryQuality)}
+  `;
+}
+
+function routePositions(coordinates) {
+  return Cartesian3.fromDegreesArray(coordinates.flatMap(([lng, lat]) => [lng, lat]));
+}
+
+function routeMidpoint(coordinates) {
+  const index = Math.floor(coordinates.length / 2);
+  return coordinates[index] ?? coordinates[0];
+}
+
+function featureSphere(feature) {
+  const coordinates =
+    feature.kind === "pipeline" ? feature.coordinates : [feature.coordinates];
+  return BoundingSphere.fromPoints(
+    coordinates.map(([lng, lat]) => Cartesian3.fromDegrees(lng, lat, 0))
+  );
+}
+
+function featureRange(feature) {
+  if (feature.kind !== "pipeline") {
+    return 28_000;
+  }
+
+  const lngs = feature.coordinates.map(([lng]) => lng);
+  const lats = feature.coordinates.map(([, lat]) => lat);
+  const span = Math.hypot(
+    Math.max(...lngs) - Math.min(...lngs),
+    Math.max(...lats) - Math.min(...lats)
+  );
+
+  return Math.min(4_200_000, Math.max(55_000, span * 180_000));
+}
+
+function makeInstallationEntity(item, selectedId) {
+  const selected = item.id === selectedId;
+  const color = colorForLayer(item.layerId);
 
   return {
-    id: `site-${site.id}`,
-    name: site.name,
-    position: Cartesian3.fromDegrees(site.lng, site.lat, selected ? 110 : 80),
-    description: siteDescription(site),
+    id: `installation-${item.id}`,
+    name: item.name,
+    position: Cartesian3.fromDegrees(item.coordinates[0], item.coordinates[1], 120),
+    description: installationDescription(item),
     point: {
-      pixelSize: selected ? 17 : 12,
       color,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      heightReference: HeightReference.RELATIVE_TO_GROUND,
       outlineColor: selected ? Color.WHITE : Color.fromCssColorString("#06111f"),
       outlineWidth: selected ? 3 : 2,
-      heightReference: HeightReference.RELATIVE_TO_GROUND,
-      disableDepthTestDistance: Number.POSITIVE_INFINITY
+      pixelSize: selected ? 17 : 11
     },
     ellipse: {
-      semiMajorAxis: selected ? 12_000 : 7_000,
-      semiMinorAxis: selected ? 12_000 : 7_000,
-      material: Color.fromAlpha(color, selected ? 0.18 : 0.1),
-      outline: true,
-      outlineColor: Color.fromAlpha(color, selected ? 0.72 : 0.46),
-      height: 65,
+      distanceDisplayCondition: new DistanceDisplayCondition(0, 1_500_000),
+      height: 80,
       heightReference: HeightReference.RELATIVE_TO_GROUND,
-      distanceDisplayCondition: new DistanceDisplayCondition(0, 2_800_000)
+      material: Color.fromAlpha(color, selected ? 0.22 : 0.1),
+      outline: true,
+      outlineColor: Color.fromAlpha(color, selected ? 0.82 : 0.46),
+      semiMajorAxis: selected ? 3_200 : 1_650,
+      semiMinorAxis: selected ? 3_200 : 1_650
     },
     label: {
-      text: site.shortName,
-      font: selected ? "800 14px Inter, sans-serif" : "800 12px Inter, sans-serif",
-      fillColor: selected ? Color.fromCssColorString("#06111f") : Color.WHITE,
-      showBackground: true,
       backgroundColor: selected
         ? Color.fromAlpha(color, 0.96)
-        : Color.fromCssColorString("rgba(5, 13, 24, 0.82)"),
-      backgroundPadding: selected ? new Cartesian2(9, 7) : new Cartesian2(8, 5),
-      pixelOffset: new Cartesian2(0, selected ? -31 : -26),
+        : Color.fromCssColorString("rgba(5, 13, 24, 0.78)"),
+      backgroundPadding: new Cartesian2(8, 5),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      distanceDisplayCondition: new DistanceDisplayCondition(
+        0,
+        selected ? 2_800_000 : 180_000
+      ),
+      fillColor: selected
+        ? Color.fromCssColorString(styleForLayer(item.layerId).label)
+        : Color.WHITE,
+      font: selected ? "850 13px Inter, sans-serif" : "800 11px Inter, sans-serif",
       horizontalOrigin: HorizontalOrigin.CENTER,
-      verticalOrigin: VerticalOrigin.BOTTOM,
-      distanceDisplayCondition: new DistanceDisplayCondition(0, labelVisibleTo),
-      disableDepthTestDistance: Number.POSITIVE_INFINITY
+      pixelOffset: new Cartesian2(0, selected ? -31 : -24),
+      showBackground: true,
+      text: item.name,
+      verticalOrigin: VerticalOrigin.BOTTOM
     }
   };
 }
 
-function makeArcEntity(arc) {
-  const materialColor = Color.fromAlpha(arcColor(arc.kind), 0.82);
-  const height = 12_000 + arc.intensity * 58_000;
+function makePipelineEntity(item, selectedId) {
+  const selected = item.id === selectedId;
+  const color = colorForLayer(item.layerId, selected ? 1 : 0.82);
+  const diameter = parseDiameter(item.diameter);
+  const midpoint = routeMidpoint(item.coordinates);
+  const material =
+    item.geometryQuality === "endpoints-resueltos"
+      ? new PolylineGlowMaterialProperty({
+          color,
+          glowPower: selected ? 0.2 : 0.12,
+          taperPower: 0.72
+        })
+      : new PolylineDashMaterialProperty({
+          color,
+          dashLength: 18
+        });
 
   return {
-    id: `arc-${arc.id}`,
+    id: `pipeline-${item.id}`,
+    name: item.name,
+    position: Cartesian3.fromDegrees(midpoint[0], midpoint[1], 500),
+    description: pipelineDescription(item),
     polyline: {
-      positions: Cartesian3.fromDegreesArrayHeights([
-        arc.startLng,
-        arc.startLat,
-        height,
-        arc.endLng,
-        arc.endLat,
-        height
-      ]),
-      width: 2.5 + arc.intensity * 2,
-      arcType: ArcType.GEODESIC,
-      material: new PolylineGlowMaterialProperty({
-        glowPower: 0.18,
-        taperPower: 0.65,
-        color: materialColor
-      }),
-      distanceDisplayCondition: new DistanceDisplayCondition(0, 8_500_000)
-    }
-  };
-}
-
-function makeEnvironmentalZoneEntity() {
-  const color = Color.fromCssColorString("#ff4d57");
-
-  return {
-    id: "zone-vaca-muerta-demo",
-    name: "Zona ambiental demo Vaca Muerta",
-    position: Cartesian3.fromDegrees(-68.95, -38.45, 70),
-    ellipse: {
-      semiMajorAxis: 230_000,
-      semiMinorAxis: 150_000,
-      material: Color.fromAlpha(color, 0.12),
-      outline: true,
-      outlineColor: Color.fromAlpha(color, 0.72),
-      height: 70,
-      heightReference: HeightReference.RELATIVE_TO_GROUND,
-      distanceDisplayCondition: new DistanceDisplayCondition(0, 4_500_000)
+      clampToGround: true,
+      distanceDisplayCondition: new DistanceDisplayCondition(0, 12_000_000),
+      material,
+      positions: routePositions(item.coordinates),
+      width: selected ? 6.8 : Math.min(5.4, Math.max(2.2, 2 + (diameter ?? 4) * 0.12))
     },
     label: {
-      text: "Zona ambiental demo",
-      font: "800 12px Inter, sans-serif",
-      fillColor: Color.WHITE,
-      showBackground: true,
-      backgroundColor: Color.fromCssColorString("rgba(5, 13, 24, 0.82)"),
+      backgroundColor: Color.fromCssColorString("rgba(5, 13, 24, 0.84)"),
       backgroundPadding: new Cartesian2(8, 5),
-      pixelOffset: new Cartesian2(0, -18),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      distanceDisplayCondition: new DistanceDisplayCondition(
+        0,
+        selected ? 4_500_000 : 900_000
+      ),
+      fillColor: selected ? color : Color.WHITE,
+      font: selected ? "850 12px Inter, sans-serif" : "800 10px Inter, sans-serif",
       horizontalOrigin: HorizontalOrigin.CENTER,
-      verticalOrigin: VerticalOrigin.BOTTOM,
-      distanceDisplayCondition: new DistanceDisplayCondition(0, 2_600_000),
-      disableDepthTestDistance: Number.POSITIVE_INFINITY
+      pixelOffset: new Cartesian2(0, -16),
+      show: selected,
+      showBackground: true,
+      text: item.name,
+      verticalOrigin: VerticalOrigin.BOTTOM
     }
   };
-}
-
-function flyToSite(viewer, site, duration = 1.25) {
-  const target = Cartesian3.fromDegrees(site.lng, site.lat, 0);
-  viewer.camera.flyToBoundingSphere(new BoundingSphere(target, 1), {
-    duration,
-    offset: new HeadingPitchRange(
-      CesiumMath.toRadians(0),
-      CesiumMath.toRadians(-58),
-      siteCameraHeight[site.priority] ?? 80_000
-    )
-  });
-}
-
-function flyToFrame(viewer, frame, duration) {
-  return new Promise((resolve) => {
-    viewer.camera.flyTo({
-      complete: resolve,
-      cancel: resolve,
-      destination: Cartesian3.fromDegrees(frame.lng, frame.lat, frame.height),
-      duration,
-      orientation: {
-        heading: CesiumMath.toRadians(frame.heading ?? 0),
-        pitch: CesiumMath.toRadians(frame.pitch ?? -60),
-        roll: 0
-      }
-    });
-  });
 }
 
 function setGlobalCameraView(viewer) {
@@ -245,16 +270,44 @@ function setGlobalCameraView(viewer) {
   viewer.scene.requestRender();
 }
 
+function flyToFrame(viewer, frame, duration) {
+  return new Promise((resolve) => {
+    viewer.camera.flyTo({
+      cancel: resolve,
+      complete: resolve,
+      destination: Cartesian3.fromDegrees(frame.lng, frame.lat, frame.height),
+      duration,
+      orientation: {
+        heading: CesiumMath.toRadians(frame.heading ?? 0),
+        pitch: CesiumMath.toRadians(frame.pitch ?? -60),
+        roll: 0
+      }
+    });
+  });
+}
+
+function flyToFeature(viewer, feature, duration) {
+  viewer.camera.flyToBoundingSphere(featureSphere(feature), {
+    duration,
+    offset: new HeadingPitchRange(
+      CesiumMath.toRadians(0),
+      CesiumMath.toRadians(feature.kind === "pipeline" ? -62 : -52),
+      featureRange(feature)
+    )
+  });
+}
+
 export default function EarthGlobe({
-  arcs,
   cameraCommand,
   focusKey,
+  installations,
   layerVisibility,
   onCameraStateChange,
-  onSelectSite,
+  onReady,
+  onSelectFeature,
   performanceMode = false,
-  selectedSite,
-  sites
+  pipelines,
+  selectedFeature
 }) {
   const containerRef = useRef(null);
   const viewerRef = useRef(null);
@@ -262,25 +315,38 @@ export default function EarthGlobe({
   const autoRotateRef = useRef(false);
   const dataSourcesRef = useRef(new Map());
   const entitiesRef = useRef(new Map());
+  const featureMapRef = useRef(new Map());
   const layerVisibilityRef = useRef(layerVisibility);
   const onCameraStateChangeRef = useRef(onCameraStateChange);
-  const onSelectSiteRef = useRef(onSelectSite);
-  const siteMapRef = useRef(new Map());
+  const onReadyRef = useRef(onReady);
+  const onSelectFeatureRef = useRef(onSelectFeature);
   const lastFocusKeyRef = useRef(focusKey);
   const tourRunRef = useRef(0);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [viewMode, setViewMode] = useState("3d");
-  const selectedId = selectedSite?.id;
+  const selectedId = selectedFeature?.id;
 
-  const siteMap = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
+  const featureMap = useMemo(() => {
+    return new Map(
+      [...installations, ...pipelines].map((feature) => [feature.id, feature])
+    );
+  }, [installations, pipelines]);
 
   useEffect(() => {
     autoRotateRef.current = isAutoRotating;
   }, [isAutoRotating]);
 
   useEffect(() => {
-    onSelectSiteRef.current = onSelectSite;
-  }, [onSelectSite]);
+    featureMapRef.current = featureMap;
+  }, [featureMap]);
+
+  useEffect(() => {
+    onSelectFeatureRef.current = onSelectFeature;
+  }, [onSelectFeature]);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
 
   useEffect(() => {
     onCameraStateChangeRef.current = onCameraStateChange;
@@ -292,10 +358,6 @@ export default function EarthGlobe({
       dataSource.show = isLayerEnabled(layerVisibility, layerId);
     });
   }, [layerVisibility]);
-
-  useEffect(() => {
-    siteMapRef.current = siteMap;
-  }, [siteMap]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -310,25 +372,25 @@ export default function EarthGlobe({
     const viewer = new Viewer(container, {
       animation: false,
       baseLayerPicker: false,
+      baseLayer: new ImageryLayer(
+        new UrlTemplateImageryProvider({
+          credit: "Esri World Imagery",
+          maximumLevel: 19,
+          url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        })
+      ),
+      creditContainer: credits,
       fullscreenButton: false,
       geocoder: false,
       homeButton: false,
       infoBox: false,
+      msaaSamples: performanceMode ? 1 : 4,
       navigationHelpButton: false,
+      sceneMode: SceneMode.SCENE3D,
       sceneModePicker: false,
       selectionIndicator: false,
       timeline: false,
-      sceneMode: SceneMode.SCENE3D,
-      baseLayer: new ImageryLayer(
-        new UrlTemplateImageryProvider({
-          url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-          maximumLevel: 19,
-          credit: "Esri World Imagery"
-        })
-      ),
-      useBrowserRecommendedResolution: true,
-      msaaSamples: performanceMode ? 1 : 4,
-      creditContainer: credits
+      useBrowserRecommendedResolution: true
     });
 
     viewerRef.current = viewer;
@@ -342,9 +404,9 @@ export default function EarthGlobe({
     viewer.resolutionScale = performanceMode ? 0.82 : 1;
     viewer.imageryLayers.addImageryProvider(
       new UrlTemplateImageryProvider({
-        url: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        credit: "Esri labels",
         maximumLevel: 19,
-        credit: "Esri labels"
+        url: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
       })
     );
     viewer.scene.screenSpaceCameraController.minimumZoomDistance = 2;
@@ -352,8 +414,6 @@ export default function EarthGlobe({
     viewer.scene.screenSpaceCameraController.inertiaSpin = 0.55;
     viewer.scene.screenSpaceCameraController.inertiaTranslate = 0.45;
     viewer.scene.screenSpaceCameraController.inertiaZoom = 0.72;
-
-    loadGooglePhotorealisticTiles(viewer).catch(() => {});
 
     ArcGISTiledElevationTerrainProvider.fromUrl(terrainUrl)
       .then((terrainProvider) => {
@@ -364,9 +424,9 @@ export default function EarthGlobe({
       .catch(() => {});
 
     GeoJsonDataSource.load("/data/geography/admin0-boundaries.geojson", {
+      clampToGround: true,
       stroke: Color.fromCssColorString("#f8fafc"),
-      strokeWidth: 2.2,
-      clampToGround: true
+      strokeWidth: 2
     })
       .then((dataSource) => {
         if (viewer.isDestroyed()) {
@@ -378,9 +438,9 @@ export default function EarthGlobe({
         dataSource.entities.values.forEach((entity) => {
           if (entity.polyline) {
             entity.polyline.material = Color.fromCssColorString(
-              "rgba(248, 250, 252, 0.72)"
+              "rgba(248, 250, 252, 0.68)"
             );
-            entity.polyline.width = 2.2;
+            entity.polyline.width = 2;
             entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(
               0,
               42_000_000
@@ -393,9 +453,9 @@ export default function EarthGlobe({
       .catch(() => {});
 
     GeoJsonDataSource.load("/data/geography/admin1-boundaries.geojson", {
+      clampToGround: true,
       stroke: Color.fromCssColorString("#38bdf8"),
-      strokeWidth: 1.35,
-      clampToGround: true
+      strokeWidth: 1.25
     })
       .then((dataSource) => {
         if (viewer.isDestroyed()) {
@@ -406,8 +466,8 @@ export default function EarthGlobe({
         dataSource.show = isLayerEnabled(layerVisibilityRef.current, "admin1");
         dataSource.entities.values.forEach((entity) => {
           if (entity.polyline) {
-            entity.polyline.material = Color.fromCssColorString("rgba(56, 189, 248, 0.56)");
-            entity.polyline.width = 1.35;
+            entity.polyline.material = Color.fromCssColorString("rgba(56, 189, 248, 0.5)");
+            entity.polyline.width = 1.25;
             entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(
               0,
               9_000_000
@@ -419,18 +479,7 @@ export default function EarthGlobe({
       })
       .catch(() => {});
 
-    viewer.camera.setView({
-      destination: Cartesian3.fromDegrees(
-        initialCamera.lng,
-        initialCamera.lat,
-        initialCamera.height
-      ),
-      orientation: {
-        heading: CesiumMath.toRadians(0),
-        pitch: CesiumMath.toRadians(globalCameraPitch),
-        roll: 0
-      }
-    });
+    setGlobalCameraView(viewer);
 
     const pauseOnInteraction = () => {
       if (autoRotateRef.current) {
@@ -447,11 +496,11 @@ export default function EarthGlobe({
     handler.setInputAction((movement) => {
       pauseOnInteraction();
       const picked = viewer.scene.pick(movement.position);
-      const siteId = picked?.id?.siteId;
-      const site = siteId ? siteMapRef.current.get(siteId) : null;
+      const featureId = picked?.id?.featureId;
+      const feature = featureId ? featureMapRef.current.get(featureId) : null;
 
-      if (site) {
-        onSelectSiteRef.current(site);
+      if (feature) {
+        onSelectFeatureRef.current(feature);
       }
     }, ScreenSpaceEventType.LEFT_CLICK);
     handlerRef.current = handler;
@@ -483,10 +532,28 @@ export default function EarthGlobe({
     viewer.camera.changed.addEventListener(emitCameraState);
     emitCameraState();
 
+    let readyFired = false;
+    const markReady = () => {
+      if (readyFired) {
+        return;
+      }
+      readyFired = true;
+      onReadyRef.current?.();
+    };
+    const readyFallback = window.setTimeout(markReady, 5_200);
+    const removeTileLoadListener =
+      viewer.scene.globe.tileLoadProgressEvent.addEventListener((pendingTiles) => {
+        if (pendingTiles === 0) {
+          window.setTimeout(markReady, 350);
+        }
+      });
+
     return () => {
       viewer.clock.onTick.removeEventListener(rotate);
       viewer.camera.changed.removeEventListener(emitCameraState);
+      removeTileLoadListener?.();
       window.cancelAnimationFrame(cameraEmitFrame);
+      window.clearTimeout(readyFallback);
       handlerRef.current?.destroy();
       handlerRef.current = null;
       viewer.destroy();
@@ -509,31 +576,29 @@ export default function EarthGlobe({
     viewer.entities.removeAll();
     entitiesRef.current.clear();
 
-    arcs.forEach((arc) => {
-      viewer.entities.add(makeArcEntity(arc));
+    pipelines.forEach((pipeline) => {
+      const entity = viewer.entities.add(makePipelineEntity(pipeline, selectedId));
+      entity.featureId = pipeline.id;
+      entitiesRef.current.set(pipeline.id, entity);
     });
 
-    if (isLayerEnabled(layerVisibility, "environmental-zones")) {
-      viewer.entities.add(makeEnvironmentalZoneEntity());
-    }
-
-    sites.forEach((site) => {
-      const entity = viewer.entities.add(makeSiteEntity(site, selectedId));
-      entity.siteId = site.id;
-      entitiesRef.current.set(site.id, entity);
+    installations.forEach((installation) => {
+      const entity = viewer.entities.add(makeInstallationEntity(installation, selectedId));
+      entity.featureId = installation.id;
+      entitiesRef.current.set(installation.id, entity);
     });
-  }, [arcs, layerVisibility, selectedId, sites]);
+  }, [installations, pipelines, selectedId]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || !selectedSite || focusKey === lastFocusKeyRef.current) {
+    if (!viewer || !selectedFeature || focusKey === lastFocusKeyRef.current) {
       return;
     }
 
     lastFocusKeyRef.current = focusKey;
     setIsAutoRotating(false);
-    flyToSite(viewer, selectedSite, prefersReducedMotion() ? 0 : 1.25);
-  }, [focusKey, selectedSite]);
+    flyToFeature(viewer, selectedFeature, prefersReducedMotion() ? 0 : 1.15);
+  }, [focusKey, selectedFeature]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -542,7 +607,6 @@ export default function EarthGlobe({
     }
 
     tourRunRef.current += 1;
-    const runId = tourRunRef.current;
     const reducedMotion = prefersReducedMotion();
     setIsAutoRotating(false);
 
@@ -556,36 +620,13 @@ export default function EarthGlobe({
       return;
     }
 
-    if (cameraCommand.type === "argentina") {
-      flyToFrame(
-        viewer,
-        {
-          lat: -39.2,
-          lng: -64.4,
-          height: 5_200_000,
-          heading: 0,
-          pitch: -70
-        },
-        reducedMotion ? 0 : 1.8
-      );
+    if (cameraCommand.type === "frame" && cameraCommand.payload) {
+      flyToFrame(viewer, cameraCommand.payload, reducedMotion ? 0 : 1.35);
       return;
     }
 
-    if (cameraCommand.type === "site" && cameraCommand.payload?.site) {
-      flyToSite(viewer, cameraCommand.payload.site, reducedMotion ? 0 : 1.35);
-      return;
-    }
-
-    if (cameraCommand.type === "tour" && cameraCommand.payload?.tour) {
-      const steps = cameraCommand.payload.tour.steps ?? [];
-      (async () => {
-        for (const step of steps) {
-          if (tourRunRef.current !== runId) {
-            return;
-          }
-          await flyToFrame(viewer, step, reducedMotion ? 0 : (step.duration ?? 1.4));
-        }
-      })();
+    if (cameraCommand.type === "feature" && cameraCommand.payload?.feature) {
+      flyToFeature(viewer, cameraCommand.payload.feature, reducedMotion ? 0 : 1.15);
     }
   }, [cameraCommand]);
 
@@ -639,10 +680,10 @@ export default function EarthGlobe({
     const height = Math.max(viewer.camera.positionCartographic.height, 200);
     const amount = Math.max(height * navigationStepRatio, 80);
     const actions = {
-      up: () => viewer.camera.moveUp(amount),
       down: () => viewer.camera.moveDown(amount),
       left: () => viewer.camera.moveLeft(amount),
-      right: () => viewer.camera.moveRight(amount)
+      right: () => viewer.camera.moveRight(amount),
+      up: () => viewer.camera.moveUp(amount)
     };
 
     actions[direction]?.();
