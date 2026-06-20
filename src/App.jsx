@@ -48,6 +48,7 @@ function buildArcs(sites, arcs) {
 }
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [activeNav, setActiveNav] = useState("Radar");
   const [activeTypes, setActiveTypes] = useState(allTypes);
   const [dateRange, setDateRange] = useState(initialDateRange);
@@ -93,6 +94,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setShowSplash(false), 2600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     if (!selectedSite || visibleSiteIds.has(selectedSite.id)) {
       return;
     }
@@ -123,6 +129,17 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      {showSplash ? (
+        <div className="earth-loading-screen" aria-label="Cargando ECOA Tierra">
+          <div className="loading-stars" />
+          <div className="loading-limb" />
+          <div className="loading-brand">
+            <strong>ECOA Tierra</strong>
+            <span />
+          </div>
+        </div>
+      ) : null}
+
       <TopBar
         activeNav={activeNav}
         dateRange={dateRange}

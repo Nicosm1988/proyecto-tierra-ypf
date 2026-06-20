@@ -1,16 +1,19 @@
 import {
   ArcType,
+  ArcGISTiledElevationTerrainProvider,
   BoundingSphere,
   Cartesian2,
   Cartesian3,
   Color,
   DistanceDisplayCondition,
+  GeoJsonDataSource,
   HeightReference,
   HeadingPitchRange,
   HorizontalOrigin,
   ImageryLayer,
   Math as CesiumMath,
   PolylineGlowMaterialProperty,
+  SceneMode,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   UrlTemplateImageryProvider,
@@ -18,21 +21,41 @@ import {
   Viewer
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
-import { Pause, Play, RotateCw } from "lucide-react";
+import {
+  Box,
+  Compass,
+  Home,
+  Layers2,
+  Map as MapIcon,
+  Minus,
+  MoveDown,
+  MoveLeft,
+  MoveRight,
+  MoveUp,
+  Pause,
+  Play,
+  Plus,
+  RotateCw
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { typeMeta } from "../constants.js";
 
 const initialCamera = {
-  lat: -38.2,
-  lng: -63.7,
-  height: 4_900_000
+  lat: -34.2,
+  lng: -58.8,
+  height: 19_500_000
 };
 
 const siteCameraHeight = {
-  alta: 55_000,
-  media: 72_000,
-  baja: 92_000
+  alta: 18_000,
+  media: 28_000,
+  baja: 42_000
 };
+
+const terrainUrl =
+  "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer";
+
+const navigationStepRatio = 0.22;
 
 function colorFromType(type, alpha = 1) {
   const base = Color.fromCssColorString(typeMeta[type].color);
@@ -150,7 +173,9 @@ export default function EarthGlobe({
   const entitiesRef = useRef(new Map());
   const onSelectSiteRef = useRef(onSelectSite);
   const siteMapRef = useRef(new Map());
+  const lastFocusKeyRef = useRef(focusKey);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
+  const [viewMode, setViewMode] = useState("3d");
   const selectedId = selectedSite?.id;
 
   const siteMap = useMemo(() => new Map(sites.map((site) => [site.id, site])), [sites]);
@@ -188,6 +213,7 @@ export default function EarthGlobe({
       sceneModePicker: false,
       selectionIndicator: false,
       timeline: false,
+      sceneMode: SceneMode.SCENE3D,
       baseLayer: new ImageryLayer(
         new UrlTemplateImageryProvider({
           url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -206,6 +232,7 @@ export default function EarthGlobe({
     }
     viewer.scene.globe.enableLighting = false;
     viewer.scene.globe.showGroundAtmosphere = true;
+    viewer.scene.globe.depthTestAgainstTerrain = false;
     viewer.imageryLayers.addImageryProvider(
       new UrlTemplateImageryProvider({
         url: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
@@ -213,11 +240,63 @@ export default function EarthGlobe({
         credit: "Esri labels"
       })
     );
-    viewer.scene.screenSpaceCameraController.minimumZoomDistance = 25;
-    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 22_000_000;
+    viewer.scene.screenSpaceCameraController.minimumZoomDistance = 2;
+    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 45_000_000;
     viewer.scene.screenSpaceCameraController.inertiaSpin = 0.55;
     viewer.scene.screenSpaceCameraController.inertiaTranslate = 0.45;
     viewer.scene.screenSpaceCameraController.inertiaZoom = 0.72;
+
+    ArcGISTiledElevationTerrainProvider.fromUrl(terrainUrl)
+      .then((terrainProvider) => {
+        if (!viewer.isDestroyed()) {
+          viewer.terrainProvider = terrainProvider;
+        }
+      })
+      .catch(() => {});
+
+    GeoJsonDataSource.load("/data/geography/admin0-boundaries.geojson", {
+      stroke: Color.fromCssColorString("#f8fafc"),
+      strokeWidth: 2.2,
+      clampToGround: true
+    })
+      .then((dataSource) => {
+        if (viewer.isDestroyed()) {
+          return;
+        }
+
+        dataSource.name = "Fronteras politicas";
+        dataSource.entities.values.forEach((entity) => {
+          if (entity.polyline) {
+            entity.polyline.material = Color.fromCssColorString("rgba(248, 250, 252, 0.72)");
+            entity.polyline.width = 2.2;
+            entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(0, 42_000_000);
+          }
+        });
+        viewer.dataSources.add(dataSource);
+      })
+      .catch(() => {});
+
+    GeoJsonDataSource.load("/data/geography/admin1-boundaries.geojson", {
+      stroke: Color.fromCssColorString("#38bdf8"),
+      strokeWidth: 1.35,
+      clampToGround: true
+    })
+      .then((dataSource) => {
+        if (viewer.isDestroyed()) {
+          return;
+        }
+
+        dataSource.name = "Divisiones jurisdiccionales";
+        dataSource.entities.values.forEach((entity) => {
+          if (entity.polyline) {
+            entity.polyline.material = Color.fromCssColorString("rgba(56, 189, 248, 0.56)");
+            entity.polyline.width = 1.35;
+            entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(0, 9_000_000);
+          }
+        });
+        viewer.dataSources.add(dataSource);
+      })
+      .catch(() => {});
 
     viewer.camera.setView({
       destination: Cartesian3.fromDegrees(
@@ -227,7 +306,7 @@ export default function EarthGlobe({
       ),
       orientation: {
         heading: CesiumMath.toRadians(0),
-        pitch: CesiumMath.toRadians(-58),
+        pitch: CesiumMath.toRadians(-90),
         roll: 0
       }
     });
@@ -302,10 +381,11 @@ export default function EarthGlobe({
 
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || !selectedSite) {
+    if (!viewer || !selectedSite || focusKey === lastFocusKeyRef.current) {
       return;
     }
 
+    lastFocusKeyRef.current = focusKey;
     setIsAutoRotating(false);
     const target = Cartesian3.fromDegrees(selectedSite.lng, selectedSite.lat, 0);
     viewer.camera.flyToBoundingSphere(new BoundingSphere(target, 1), {
@@ -318,11 +398,147 @@ export default function EarthGlobe({
     });
   }, [focusKey, selectedSite]);
 
+  function flyToEarth() {
+    const viewer = viewerRef.current;
+    if (!viewer) {
+      return;
+    }
+
+    setIsAutoRotating(false);
+    viewer.camera.flyTo({
+      destination: Cartesian3.fromDegrees(
+        initialCamera.lng,
+        initialCamera.lat,
+        initialCamera.height
+      ),
+      orientation: {
+        heading: CesiumMath.toRadians(0),
+        pitch: CesiumMath.toRadians(-90),
+        roll: 0
+      },
+      duration: 1.15
+    });
+  }
+
+  function zoom(direction) {
+    const viewer = viewerRef.current;
+    if (!viewer) {
+      return;
+    }
+
+    setIsAutoRotating(false);
+    const height = Math.max(viewer.camera.positionCartographic.height, 120);
+    const amount = Math.max(height * 0.42, 40);
+
+    if (direction === "in") {
+      viewer.camera.zoomIn(amount);
+    } else {
+      viewer.camera.zoomOut(amount);
+    }
+  }
+
+  function pan(direction) {
+    const viewer = viewerRef.current;
+    if (!viewer) {
+      return;
+    }
+
+    setIsAutoRotating(false);
+    const height = Math.max(viewer.camera.positionCartographic.height, 200);
+    const amount = Math.max(height * navigationStepRatio, 80);
+    const actions = {
+      up: () => viewer.camera.moveUp(amount),
+      down: () => viewer.camera.moveDown(amount),
+      left: () => viewer.camera.moveLeft(amount),
+      right: () => viewer.camera.moveRight(amount)
+    };
+
+    actions[direction]?.();
+  }
+
+  function setScene(mode) {
+    const viewer = viewerRef.current;
+    if (!viewer) {
+      return;
+    }
+
+    setIsAutoRotating(false);
+    setViewMode(mode);
+
+    if (mode === "3d") {
+      viewer.scene.morphTo3D(0.8);
+    } else if (mode === "2d") {
+      viewer.scene.morphTo2D(0.8);
+    } else {
+      viewer.scene.morphToColumbusView(0.8);
+    }
+  }
+
   return (
     <div className="earth-globe">
       <div className="cesium-globe" ref={containerRef} />
       <div className="globe-vignette" aria-hidden="true" />
-      <div className="globe-control-bar">
+      <div className="earth-toolbar" aria-label="Controles de mapa">
+        <div className="toolbar-cluster">
+          <button onClick={() => zoom("in")} title="Acercar" type="button">
+            <Plus aria-hidden="true" size={18} />
+          </button>
+          <button onClick={() => zoom("out")} title="Alejar" type="button">
+            <Minus aria-hidden="true" size={18} />
+          </button>
+          <button onClick={flyToEarth} title="Tierra completa" type="button">
+            <Home aria-hidden="true" size={18} />
+          </button>
+        </div>
+
+        <div className="toolbar-cluster scene-modes">
+          <button
+            className={viewMode === "3d" ? "active" : ""}
+            onClick={() => setScene("3d")}
+            title="Vista 3D"
+            type="button"
+          >
+            <Box aria-hidden="true" size={18} />
+            <span>3D</span>
+          </button>
+          <button
+            className={viewMode === "2d" ? "active" : ""}
+            onClick={() => setScene("2d")}
+            title="Vista 2D"
+            type="button"
+          >
+            <MapIcon aria-hidden="true" size={18} />
+            <span>2D</span>
+          </button>
+          <button
+            className={viewMode === "flat" ? "active" : ""}
+            onClick={() => setScene("flat")}
+            title="Aplanar"
+            type="button"
+          >
+            <Layers2 aria-hidden="true" size={18} />
+            <span>Plano</span>
+          </button>
+        </div>
+
+        <div className="toolbar-pad" aria-label="Desplazar mapa">
+          <button className="pad-up" onClick={() => pan("up")} title="Subir" type="button">
+            <MoveUp aria-hidden="true" size={17} />
+          </button>
+          <button className="pad-left" onClick={() => pan("left")} title="Izquierda" type="button">
+            <MoveLeft aria-hidden="true" size={17} />
+          </button>
+          <button className="pad-center" onClick={flyToEarth} title="Recentrar" type="button">
+            <Compass aria-hidden="true" size={17} />
+          </button>
+          <button className="pad-right" onClick={() => pan("right")} title="Derecha" type="button">
+            <MoveRight aria-hidden="true" size={17} />
+          </button>
+          <button className="pad-down" onClick={() => pan("down")} title="Bajar" type="button">
+            <MoveDown aria-hidden="true" size={17} />
+          </button>
+        </div>
+
         <button
           className={isAutoRotating ? "rotation-toggle active" : "rotation-toggle"}
           onClick={() => setIsAutoRotating((current) => !current)}
