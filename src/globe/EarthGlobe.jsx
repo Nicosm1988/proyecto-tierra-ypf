@@ -39,12 +39,11 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { typeMeta } from "../constants.js";
+import { isLayerEnabled } from "../earth/layerRegistry.js";
+import { loadGooglePhotorealisticTiles } from "../earth/googlePhotorealisticTiles.js";
+import { prefersReducedMotion, publicEnv } from "../utils/env.js";
 
-const initialCamera = {
-  lat: -34.2,
-  lng: -58.8,
-  height: 19_500_000
-};
+const initialCamera = publicEnv.defaultCamera;
 
 const siteCameraHeight = {
   alta: 18_000,
@@ -159,10 +158,75 @@ function makeArcEntity(arc) {
   };
 }
 
+function makeEnvironmentalZoneEntity() {
+  const color = Color.fromCssColorString("#ff4d57");
+
+  return {
+    id: "zone-vaca-muerta-demo",
+    name: "Zona ambiental demo Vaca Muerta",
+    position: Cartesian3.fromDegrees(-68.95, -38.45, 70),
+    ellipse: {
+      semiMajorAxis: 230_000,
+      semiMinorAxis: 150_000,
+      material: Color.fromAlpha(color, 0.12),
+      outline: true,
+      outlineColor: Color.fromAlpha(color, 0.72),
+      height: 70,
+      heightReference: HeightReference.RELATIVE_TO_GROUND,
+      distanceDisplayCondition: new DistanceDisplayCondition(0, 4_500_000)
+    },
+    label: {
+      text: "Zona ambiental demo",
+      font: "800 12px Inter, sans-serif",
+      fillColor: Color.WHITE,
+      showBackground: true,
+      backgroundColor: Color.fromCssColorString("rgba(5, 13, 24, 0.82)"),
+      backgroundPadding: new Cartesian2(8, 5),
+      pixelOffset: new Cartesian2(0, -18),
+      horizontalOrigin: HorizontalOrigin.CENTER,
+      verticalOrigin: VerticalOrigin.BOTTOM,
+      distanceDisplayCondition: new DistanceDisplayCondition(0, 2_600_000),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY
+    }
+  };
+}
+
+function flyToSite(viewer, site, duration = 1.25) {
+  const target = Cartesian3.fromDegrees(site.lng, site.lat, 0);
+  viewer.camera.flyToBoundingSphere(new BoundingSphere(target, 1), {
+    duration,
+    offset: new HeadingPitchRange(
+      CesiumMath.toRadians(0),
+      CesiumMath.toRadians(-58),
+      siteCameraHeight[site.priority] ?? 80_000
+    )
+  });
+}
+
+function flyToFrame(viewer, frame, duration) {
+  return new Promise((resolve) => {
+    viewer.camera.flyTo({
+      complete: resolve,
+      cancel: resolve,
+      destination: Cartesian3.fromDegrees(frame.lng, frame.lat, frame.height),
+      duration,
+      orientation: {
+        heading: CesiumMath.toRadians(frame.heading ?? 0),
+        pitch: CesiumMath.toRadians(frame.pitch ?? -60),
+        roll: 0
+      }
+    });
+  });
+}
+
 export default function EarthGlobe({
   arcs,
+  cameraCommand,
   focusKey,
+  layerVisibility,
+  onCameraStateChange,
   onSelectSite,
+  performanceMode = false,
   selectedSite,
   sites
 }) {
@@ -170,10 +234,14 @@ export default function EarthGlobe({
   const viewerRef = useRef(null);
   const handlerRef = useRef(null);
   const autoRotateRef = useRef(false);
+  const dataSourcesRef = useRef(new Map());
   const entitiesRef = useRef(new Map());
+  const layerVisibilityRef = useRef(layerVisibility);
+  const onCameraStateChangeRef = useRef(onCameraStateChange);
   const onSelectSiteRef = useRef(onSelectSite);
   const siteMapRef = useRef(new Map());
   const lastFocusKeyRef = useRef(focusKey);
+  const tourRunRef = useRef(0);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [viewMode, setViewMode] = useState("3d");
   const selectedId = selectedSite?.id;
@@ -187,6 +255,17 @@ export default function EarthGlobe({
   useEffect(() => {
     onSelectSiteRef.current = onSelectSite;
   }, [onSelectSite]);
+
+  useEffect(() => {
+    onCameraStateChangeRef.current = onCameraStateChange;
+  }, [onCameraStateChange]);
+
+  useEffect(() => {
+    layerVisibilityRef.current = layerVisibility;
+    dataSourcesRef.current.forEach((dataSource, layerId) => {
+      dataSource.show = isLayerEnabled(layerVisibility, layerId);
+    });
+  }, [layerVisibility]);
 
   useEffect(() => {
     siteMapRef.current = siteMap;
@@ -222,7 +301,7 @@ export default function EarthGlobe({
         })
       ),
       useBrowserRecommendedResolution: true,
-      msaaSamples: 4,
+      msaaSamples: performanceMode ? 1 : 4,
       creditContainer: credits
     });
 
@@ -231,8 +310,10 @@ export default function EarthGlobe({
       window.__ypfCesiumViewer = viewer;
     }
     viewer.scene.globe.enableLighting = false;
+    viewer.scene.globe.baseColor = Color.fromCssColorString("#0b5f88");
     viewer.scene.globe.showGroundAtmosphere = true;
     viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.resolutionScale = performanceMode ? 0.82 : 1;
     viewer.imageryLayers.addImageryProvider(
       new UrlTemplateImageryProvider({
         url: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
@@ -245,6 +326,8 @@ export default function EarthGlobe({
     viewer.scene.screenSpaceCameraController.inertiaSpin = 0.55;
     viewer.scene.screenSpaceCameraController.inertiaTranslate = 0.45;
     viewer.scene.screenSpaceCameraController.inertiaZoom = 0.72;
+
+    loadGooglePhotorealisticTiles(viewer).catch(() => {});
 
     ArcGISTiledElevationTerrainProvider.fromUrl(terrainUrl)
       .then((terrainProvider) => {
@@ -265,13 +348,20 @@ export default function EarthGlobe({
         }
 
         dataSource.name = "Fronteras politicas";
+        dataSource.show = isLayerEnabled(layerVisibilityRef.current, "admin0");
         dataSource.entities.values.forEach((entity) => {
           if (entity.polyline) {
-            entity.polyline.material = Color.fromCssColorString("rgba(248, 250, 252, 0.72)");
+            entity.polyline.material = Color.fromCssColorString(
+              "rgba(248, 250, 252, 0.72)"
+            );
             entity.polyline.width = 2.2;
-            entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(0, 42_000_000);
+            entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(
+              0,
+              42_000_000
+            );
           }
         });
+        dataSourcesRef.current.set("admin0", dataSource);
         viewer.dataSources.add(dataSource);
       })
       .catch(() => {});
@@ -287,13 +377,18 @@ export default function EarthGlobe({
         }
 
         dataSource.name = "Divisiones jurisdiccionales";
+        dataSource.show = isLayerEnabled(layerVisibilityRef.current, "admin1");
         dataSource.entities.values.forEach((entity) => {
           if (entity.polyline) {
             entity.polyline.material = Color.fromCssColorString("rgba(56, 189, 248, 0.56)");
             entity.polyline.width = 1.35;
-            entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(0, 9_000_000);
+            entity.polyline.distanceDisplayCondition = new DistanceDisplayCondition(
+              0,
+              9_000_000
+            );
           }
         });
+        dataSourcesRef.current.set("admin1", dataSource);
         viewer.dataSources.add(dataSource);
       })
       .catch(() => {});
@@ -345,8 +440,27 @@ export default function EarthGlobe({
 
     viewer.clock.onTick.addEventListener(rotate);
 
+    let cameraEmitFrame = 0;
+    const emitCameraState = () => {
+      window.cancelAnimationFrame(cameraEmitFrame);
+      cameraEmitFrame = window.requestAnimationFrame(() => {
+        const cartographic = viewer.camera.positionCartographic;
+        onCameraStateChangeRef.current?.({
+          height: cartographic.height,
+          lat: CesiumMath.toDegrees(cartographic.latitude),
+          lng: CesiumMath.toDegrees(cartographic.longitude),
+          sceneMode: viewer.scene.mode
+        });
+      });
+    };
+
+    viewer.camera.changed.addEventListener(emitCameraState);
+    emitCameraState();
+
     return () => {
       viewer.clock.onTick.removeEventListener(rotate);
+      viewer.camera.changed.removeEventListener(emitCameraState);
+      window.cancelAnimationFrame(cameraEmitFrame);
       handlerRef.current?.destroy();
       handlerRef.current = null;
       viewer.destroy();
@@ -354,6 +468,7 @@ export default function EarthGlobe({
         delete window.__ypfCesiumViewer;
       }
       viewerRef.current = null;
+      dataSourcesRef.current.clear();
       entitiesRef.current.clear();
       container.innerHTML = "";
     };
@@ -372,12 +487,16 @@ export default function EarthGlobe({
       viewer.entities.add(makeArcEntity(arc));
     });
 
+    if (isLayerEnabled(layerVisibility, "environmental-zones")) {
+      viewer.entities.add(makeEnvironmentalZoneEntity());
+    }
+
     sites.forEach((site) => {
       const entity = viewer.entities.add(makeSiteEntity(site, selectedId));
       entity.siteId = site.id;
       entitiesRef.current.set(site.id, entity);
     });
-  }, [arcs, selectedId, sites]);
+  }, [arcs, layerVisibility, selectedId, sites]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -387,18 +506,74 @@ export default function EarthGlobe({
 
     lastFocusKeyRef.current = focusKey;
     setIsAutoRotating(false);
-    const target = Cartesian3.fromDegrees(selectedSite.lng, selectedSite.lat, 0);
-    viewer.camera.flyToBoundingSphere(new BoundingSphere(target, 1), {
-      duration: 1.25,
-      offset: new HeadingPitchRange(
-        CesiumMath.toRadians(0),
-        CesiumMath.toRadians(-58),
-        siteCameraHeight[selectedSite.priority] ?? 80_000
-      )
-    });
+    flyToSite(viewer, selectedSite, prefersReducedMotion() ? 0 : 1.25);
   }, [focusKey, selectedSite]);
 
-  function flyToEarth() {
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !cameraCommand) {
+      return;
+    }
+
+    tourRunRef.current += 1;
+    const runId = tourRunRef.current;
+    const reducedMotion = prefersReducedMotion();
+    setIsAutoRotating(false);
+
+    if (cameraCommand.type === "stop-tour") {
+      viewer.camera.cancelFlight();
+      return;
+    }
+
+    if (cameraCommand.type === "home") {
+      flyToEarth(reducedMotion ? 0 : 1.15);
+      return;
+    }
+
+    if (cameraCommand.type === "argentina") {
+      flyToFrame(
+        viewer,
+        {
+          lat: -39.2,
+          lng: -64.4,
+          height: 5_200_000,
+          heading: 0,
+          pitch: -70
+        },
+        reducedMotion ? 0 : 1.8
+      );
+      return;
+    }
+
+    if (cameraCommand.type === "site" && cameraCommand.payload?.site) {
+      flyToSite(viewer, cameraCommand.payload.site, reducedMotion ? 0 : 1.35);
+      return;
+    }
+
+    if (cameraCommand.type === "tour" && cameraCommand.payload?.tour) {
+      const steps = cameraCommand.payload.tour.steps ?? [];
+      (async () => {
+        for (const step of steps) {
+          if (tourRunRef.current !== runId) {
+            return;
+          }
+          await flyToFrame(viewer, step, reducedMotion ? 0 : (step.duration ?? 1.4));
+        }
+      })();
+    }
+  }, [cameraCommand]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) {
+      return;
+    }
+
+    viewer.resolutionScale = performanceMode ? 0.82 : 1;
+    viewer.scene.globe.maximumScreenSpaceError = performanceMode ? 4 : 2;
+  }, [performanceMode]);
+
+  function flyToEarth(duration = 1.15) {
     const viewer = viewerRef.current;
     if (!viewer) {
       return;
@@ -416,7 +591,7 @@ export default function EarthGlobe({
         pitch: CesiumMath.toRadians(-90),
         roll: 0
       },
-      duration: 1.15
+      duration
     });
   }
 
@@ -525,16 +700,36 @@ export default function EarthGlobe({
           <button className="pad-up" onClick={() => pan("up")} title="Subir" type="button">
             <MoveUp aria-hidden="true" size={17} />
           </button>
-          <button className="pad-left" onClick={() => pan("left")} title="Izquierda" type="button">
+          <button
+            className="pad-left"
+            onClick={() => pan("left")}
+            title="Izquierda"
+            type="button"
+          >
             <MoveLeft aria-hidden="true" size={17} />
           </button>
-          <button className="pad-center" onClick={flyToEarth} title="Recentrar" type="button">
+          <button
+            className="pad-center"
+            onClick={flyToEarth}
+            title="Recentrar"
+            type="button"
+          >
             <Compass aria-hidden="true" size={17} />
           </button>
-          <button className="pad-right" onClick={() => pan("right")} title="Derecha" type="button">
+          <button
+            className="pad-right"
+            onClick={() => pan("right")}
+            title="Derecha"
+            type="button"
+          >
             <MoveRight aria-hidden="true" size={17} />
           </button>
-          <button className="pad-down" onClick={() => pan("down")} title="Bajar" type="button">
+          <button
+            className="pad-down"
+            onClick={() => pan("down")}
+            title="Bajar"
+            type="button"
+          >
             <MoveDown aria-hidden="true" size={17} />
           </button>
         </div>

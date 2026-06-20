@@ -46,10 +46,4 @@ export const priorityMeta = {
   }
 };
 
-export const navItems = [
-  "Radar",
-  "Hallazgos",
-  "Hechos futuros",
-  "Action board",
-  "Players"
-];
+export const navItems = ["Radar", "Hallazgos", "Hechos futuros", "Action board", "Players"];

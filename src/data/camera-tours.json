@@ -1,0 +1,141 @@
+[
+  {
+    "id": "global",
+    "name": "Vista global",
+    "summary": "Parte desde el planeta completo y ubica el cono sur.",
+    "layers": ["admin0", "admin1"],
+    "steps": [
+      {
+        "label": "Orbita global",
+        "lat": -34.2,
+        "lng": -58.8,
+        "height": 19500000,
+        "heading": 0,
+        "pitch": -90,
+        "duration": 1.2
+      },
+      {
+        "label": "Cono sur",
+        "lat": -38.1,
+        "lng": -64.3,
+        "height": 7200000,
+        "heading": 0,
+        "pitch": -72,
+        "duration": 2.4
+      }
+    ]
+  },
+  {
+    "id": "argentina-energetica",
+    "name": "Argentina energetica",
+    "summary": "Recorrido por nodos demo de energia e infraestructura.",
+    "layers": ["sites-upstream", "sites-refining", "sites-logistics", "arcs-logistics"],
+    "steps": [
+      {
+        "label": "Argentina",
+        "lat": -39.2,
+        "lng": -64.4,
+        "height": 5200000,
+        "heading": 0,
+        "pitch": -70,
+        "duration": 1.8
+      },
+      {
+        "label": "Corredor productivo",
+        "lat": -37.5,
+        "lng": -66.8,
+        "height": 1750000,
+        "heading": 338,
+        "pitch": -55,
+        "duration": 2.2
+      },
+      {
+        "label": "Sistema integrado",
+        "lat": -35.6,
+        "lng": -61.9,
+        "height": 2300000,
+        "heading": 18,
+        "pitch": -58,
+        "duration": 2.1
+      }
+    ]
+  },
+  {
+    "id": "vaca-muerta",
+    "name": "Vaca Muerta",
+    "summary": "Descenso cinematografico al hub no convencional demo.",
+    "layers": ["sites-upstream", "environmental-zones", "arcs-logistics"],
+    "steps": [
+      {
+        "label": "Neuquen desde altura",
+        "lat": -38.45,
+        "lng": -68.95,
+        "height": 1800000,
+        "heading": 0,
+        "pitch": -64,
+        "duration": 1.8
+      },
+      {
+        "label": "Hub Vaca Muerta",
+        "lat": -38.45,
+        "lng": -68.95,
+        "height": 54000,
+        "heading": 32,
+        "pitch": -58,
+        "duration": 2.4
+      }
+    ]
+  },
+  {
+    "id": "infraestructura-demo",
+    "name": "Infraestructura demo",
+    "summary": "Foco en terminales, ductos y flujos logisticos.",
+    "layers": ["sites-logistics", "arcs-logistics"],
+    "steps": [
+      {
+        "label": "Bahia Blanca",
+        "lat": -38.78,
+        "lng": -62.27,
+        "height": 260000,
+        "heading": 24,
+        "pitch": -54,
+        "duration": 1.8
+      },
+      {
+        "label": "Trasandino",
+        "lat": -38.83,
+        "lng": -70.1,
+        "height": 310000,
+        "heading": 304,
+        "pitch": -54,
+        "duration": 2
+      }
+    ]
+  },
+  {
+    "id": "ambiente-territorio",
+    "name": "Ambiente y territorio",
+    "summary": "Activa zonas ambientales demo y divisiones jurisdiccionales.",
+    "layers": ["admin0", "admin1", "environmental-zones"],
+    "steps": [
+      {
+        "label": "Jurisdicciones",
+        "lat": -38.1,
+        "lng": -66.8,
+        "height": 1700000,
+        "heading": 0,
+        "pitch": -66,
+        "duration": 1.8
+      },
+      {
+        "label": "Zona sensible demo",
+        "lat": -38.45,
+        "lng": -68.95,
+        "height": 155000,
+        "heading": 42,
+        "pitch": -52,
+        "duration": 2.2
+      }
+    ]
+  }
+]

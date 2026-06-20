@@ -3,10 +3,18 @@ import EarthGlobe from "./globe/EarthGlobe.jsx";
 import TopBar from "./components/TopBar.jsx";
 import FilterPanel from "./components/FilterPanel.jsx";
 import SidePanel from "./components/SidePanel.jsx";
+import PremiumHud from "./components/hud/PremiumHud.jsx";
 import sitesData from "./data/sites.json";
 import arcsData from "./data/arcs.json";
 import feedData from "./data/feed.json";
+import toursData from "./data/camera-tours.json";
 import { typeMeta } from "./constants.js";
+import {
+  areArcsVisibleByLayers,
+  isSiteVisibleByLayers,
+  layerGroups
+} from "./earth/layerRegistry.js";
+import { useEarthStore } from "./store/useEarthStore.js";
 
 const initialDateRange = {
   from: "2026-05-20",
@@ -51,23 +59,49 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeNav, setActiveNav] = useState("Radar");
   const [activeTypes, setActiveTypes] = useState(allTypes);
+  const [cameraState, setCameraState] = useState(null);
   const [dateRange, setDateRange] = useState(initialDateRange);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState(sitesData[0]);
   const [focusKey, setFocusKey] = useState(0);
+  const {
+    activeTourId,
+    cameraCommand,
+    hudSection,
+    layerVisibility,
+    measurementMode,
+    performanceMode,
+    runCameraCommand,
+    setHudSection,
+    setLayerVisibility,
+    stopTour,
+    toggleLayer,
+    toggleMeasurementMode,
+    togglePerformanceMode
+  } = useEarthStore();
 
   const visibleSites = useMemo(() => {
     return sitesData.filter((site) => {
-      return activeTypes.includes(site.type) && isInsideRange(site.date, dateRange);
+      return (
+        activeTypes.includes(site.type) &&
+        isInsideRange(site.date, dateRange) &&
+        isSiteVisibleByLayers(site, layerVisibility)
+      );
     });
-  }, [activeTypes, dateRange]);
+  }, [activeTypes, dateRange, layerVisibility]);
 
   const visibleSiteIds = useMemo(
     () => new Set(visibleSites.map((site) => site.id)),
     [visibleSites]
   );
 
-  const visibleArcs = useMemo(() => buildArcs(visibleSites, arcsData), [visibleSites]);
+  const visibleArcs = useMemo(() => {
+    if (!areArcsVisibleByLayers(layerVisibility)) {
+      return [];
+    }
+
+    return buildArcs(visibleSites, arcsData);
+  }, [layerVisibility, visibleSites]);
 
   const visibleFeed = useMemo(() => {
     return feedData
@@ -127,6 +161,14 @@ export default function App() {
     setDateRange(initialDateRange);
   }
 
+  function handleRunCameraCommand(type, payload) {
+    if (type === "tour" && payload?.tour?.layers) {
+      payload.tour.layers.forEach((layerId) => setLayerVisibility(layerId, true));
+    }
+
+    runCameraCommand(type, payload);
+  }
+
   return (
     <main className="app-shell">
       {showSplash ? (
@@ -135,6 +177,7 @@ export default function App() {
           <div className="loading-limb" />
           <div className="loading-brand">
             <strong>ECOA Tierra</strong>
+            <p>Exploracion geoespacial energetica y ambiental</p>
             <span />
           </div>
         </div>
@@ -163,10 +206,34 @@ export default function App() {
 
           <EarthGlobe
             arcs={visibleArcs}
+            cameraCommand={cameraCommand}
             focusKey={focusKey}
+            layerVisibility={layerVisibility}
+            onCameraStateChange={setCameraState}
             onSelectSite={handleSelectSite}
+            performanceMode={performanceMode}
             selectedSite={selectedSite}
             sites={visibleSites}
+          />
+
+          <PremiumHud
+            activeTourId={activeTourId}
+            cameraState={cameraState}
+            hudSection={hudSection}
+            layerGroups={layerGroups}
+            layerVisibility={layerVisibility}
+            measurementMode={measurementMode}
+            onRunCommand={handleRunCameraCommand}
+            onSelectSite={handleSelectSite}
+            onSetHudSection={setHudSection}
+            onStopTour={stopTour}
+            onToggleLayer={toggleLayer}
+            onToggleMeasurement={toggleMeasurementMode}
+            onTogglePerformance={togglePerformanceMode}
+            performanceMode={performanceMode}
+            selectedSite={selectedSite}
+            sites={sitesData}
+            tours={toursData}
           />
         </div>
 

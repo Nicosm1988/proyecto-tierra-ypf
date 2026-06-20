@@ -1,0 +1,7 @@
+dist
+node_modules
+.vercel
+.playwright-mcp
+playwright-report
+test-results
+public/data/geography/*.geojson

@@ -1,0 +1,146 @@
+{
+  "type": "FeatureCollection",
+  "name": "ECOA Tierra YPF demo locations",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "vaca-muerta",
+      "properties": {
+        "id": "vaca-muerta",
+        "name": "Vaca Muerta Hub",
+        "category": "upstream",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Nodo demo de shale oil y shale gas para recorridos ejecutivos.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-68.95, -38.45] }
+    },
+    {
+      "type": "Feature",
+      "id": "refineria-la-plata",
+      "properties": {
+        "id": "refineria-la-plata",
+        "name": "Complejo Industrial La Plata",
+        "category": "refineria",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Activo demo de refinacion y petroquimica.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-57.9, -34.87] }
+    },
+    {
+      "type": "Feature",
+      "id": "lujan-cuyo",
+      "properties": {
+        "id": "lujan-cuyo",
+        "name": "Complejo Industrial Lujan de Cuyo",
+        "category": "refineria",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Activo demo de refinacion para el corredor andino.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-68.88, -33.04] }
+    },
+    {
+      "type": "Feature",
+      "id": "plaza-huincul",
+      "properties": {
+        "id": "plaza-huincul",
+        "name": "Refineria Plaza Huincul",
+        "category": "refineria",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Activo demo conectado al ecosistema neuquino.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-69.22, -38.93] }
+    },
+    {
+      "type": "Feature",
+      "id": "oleoducto-trasandino",
+      "properties": {
+        "id": "oleoducto-trasandino",
+        "name": "Oleoducto Trasandino",
+        "category": "logistica",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Infraestructura demo para conectividad regional.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-70.1, -38.83] }
+    },
+    {
+      "type": "Feature",
+      "id": "terminal-bahia-blanca",
+      "properties": {
+        "id": "terminal-bahia-blanca",
+        "name": "Terminal Bahia Blanca",
+        "category": "terminal",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Nodo portuario demo para abastecimiento y exportacion.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-62.27, -38.78] }
+    },
+    {
+      "type": "Feature",
+      "id": "ypf-torre",
+      "properties": {
+        "id": "ypf-torre",
+        "name": "Torre YPF Puerto Madero",
+        "category": "oficina",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Marcador institucional demo para decision ejecutiva.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-58.36, -34.61] }
+    },
+    {
+      "type": "Feature",
+      "id": "renovables-manantiales",
+      "properties": {
+        "id": "renovables-manantiales",
+        "name": "Parque Eolico Manantiales Behr",
+        "category": "energia",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Activo demo de generacion renovable.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-67.49, -45.86] }
+    },
+    {
+      "type": "Feature",
+      "id": "terminal-san-lorenzo",
+      "properties": {
+        "id": "terminal-san-lorenzo",
+        "name": "Terminal San Lorenzo",
+        "category": "terminal",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Nodo demo para corredor centro y red fluvial.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-60.73, -32.74] }
+    },
+    {
+      "type": "Feature",
+      "id": "mendoza-data",
+      "properties": {
+        "id": "mendoza-data",
+        "name": "Centro operativo Mendoza",
+        "category": "oficina",
+        "status": "demo",
+        "source": "ECOA demo",
+        "description": "Nodo demo de analitica regional.",
+        "updatedAt": "2026-06-19"
+      },
+      "geometry": { "type": "Point", "coordinates": [-68.84, -32.89] }
+    }
+  ]
+}

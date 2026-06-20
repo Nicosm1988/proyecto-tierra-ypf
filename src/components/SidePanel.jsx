@@ -21,13 +21,7 @@ function formatDate(value) {
   return dateFormatter.format(new Date(`${value}T00:00:00`));
 }
 
-export default function SidePanel({
-  feed,
-  metrics,
-  onSelectSite,
-  selectedSite,
-  siteMap
-}) {
+export default function SidePanel({ feed, metrics, onSelectSite, selectedSite, siteMap }) {
   return (
     <aside className="side-panel" aria-label="Feed y detalle">
       <section className="live-summary">
@@ -86,10 +80,7 @@ export default function SidePanel({
                 type="button"
               >
                 <div className="feed-card-head">
-                  <span
-                    className="category-badge"
-                    style={{ "--accent": priority.color }}
-                  >
+                  <span className="category-badge" style={{ "--accent": priority.color }}>
                     {item.category}
                   </span>
                   <Activity aria-hidden="true" size={17} />
