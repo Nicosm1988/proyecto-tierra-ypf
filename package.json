@@ -9,14 +9,14 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
-    "globe.gl": "latest",
+    "cesium": "^1.142.0",
     "lucide-react": "latest",
     "react": "latest",
-    "react-dom": "latest",
-    "three": "latest"
+    "react-dom": "latest"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "vite-plugin-cesium": "^1.2.23"
   }
 }

@@ -51,13 +51,7 @@ export default function App() {
   const [activeNav, setActiveNav] = useState("Radar");
   const [activeTypes, setActiveTypes] = useState(allTypes);
   const [dateRange, setDateRange] = useState(initialDateRange);
-  const [filtersOpen, setFiltersOpen] = useState(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
-
-    return !window.matchMedia("(max-width: 760px)").matches;
-  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState(sitesData[0]);
   const [focusKey, setFocusKey] = useState(0);
 

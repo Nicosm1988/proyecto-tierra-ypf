@@ -264,8 +264,78 @@ button {
   position: absolute;
 }
 
+.cesium-globe {
+  height: 100%;
+  width: 100%;
+}
+
+.cesium-widget,
+.cesium-widget canvas {
+  height: 100%;
+  width: 100%;
+}
+
 .earth-globe canvas {
   display: block;
+}
+
+.cesium-viewer-bottom,
+.cesium-credit-shelf {
+  bottom: 8px;
+  left: 10px;
+  opacity: 0.72;
+  pointer-events: auto;
+  position: absolute;
+  z-index: 4;
+}
+
+.cesium-credit-shelf,
+.cesium-credit-shelf a,
+.cesium-credit-shelf span {
+  color: rgba(248, 250, 252, 0.64) !important;
+  font-size: 0.62rem !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+}
+
+.cesium-widget-credits {
+  display: inline-flex !important;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.globe-control-bar {
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  position: absolute;
+  right: 18px;
+  top: 28px;
+  z-index: 5;
+}
+
+.rotation-toggle {
+  align-items: center;
+  background: rgba(3, 10, 21, 0.82);
+  border: 1px solid rgba(56, 189, 248, 0.52);
+  border-radius: 8px;
+  color: var(--blue);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 13px;
+  pointer-events: auto;
+}
+
+.rotation-toggle.active {
+  background: rgba(12, 42, 65, 0.9);
+  color: #f8fafc;
+}
+
+.rotation-toggle:hover {
+  border-color: rgba(56, 189, 248, 0.86);
 }
 
 .globe-vignette {
@@ -832,8 +902,19 @@ button {
 
   .filter-panel {
     left: 10px;
-    top: 12px;
+    top: 76px;
     width: calc(100% - 20px);
+  }
+
+  .globe-control-bar {
+    left: 10px;
+    right: 10px;
+    top: 12px;
+  }
+
+  .rotation-toggle {
+    justify-content: center;
+    width: 100%;
   }
 
   .filter-grid,
