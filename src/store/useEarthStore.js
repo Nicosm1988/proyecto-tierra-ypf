@@ -15,7 +15,7 @@ function createCommand(type, payload = {}) {
 export const useEarthStore = create((set) => ({
   activeTourId: null,
   cameraCommand: null,
-  hudSection: "layers",
+  hudSection: "search",
   layerVisibility: initialLayerVisibility,
   measurementMode: true,
   performanceMode: false,

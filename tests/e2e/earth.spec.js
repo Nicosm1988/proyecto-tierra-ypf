@@ -30,13 +30,14 @@ test("toggles a layer and starts a tour", async ({ page }, testInfo) => {
   await page.goto("/");
   await expect(page.getByLabel("Cargando ECOA Tierra")).toBeHidden({ timeout: 8_000 });
 
+  await page.getByRole("button", { name: /Capas/i }).click();
   await page.getByRole("button", { name: /Fronteras politicas/i }).click();
   await expect(page.getByRole("button", { name: /Fronteras politicas/i })).toHaveAttribute(
     "aria-pressed",
     "false"
   );
 
-  await page.getByRole("button", { name: /Tour YPF/i }).click({ force: true });
+  await page.getByRole("button", { name: /Tour YPF/i }).dispatchEvent("click");
   await expect(page.getByRole("button", { name: /Pausar/i }).first()).toBeVisible();
   expect(page.errors).toEqual([]);
 });

@@ -11,6 +11,7 @@ import {
   HeadingPitchRange,
   HorizontalOrigin,
   ImageryLayer,
+  Matrix4,
   Math as CesiumMath,
   PolylineGlowMaterialProperty,
   SceneMode,
@@ -44,6 +45,7 @@ import { loadGooglePhotorealisticTiles } from "../earth/googlePhotorealisticTile
 import { prefersReducedMotion, publicEnv } from "../utils/env.js";
 
 const initialCamera = publicEnv.defaultCamera;
+const globalCameraPitch = -90;
 
 const siteCameraHeight = {
   alta: 18_000,
@@ -217,6 +219,30 @@ function flyToFrame(viewer, frame, duration) {
       }
     });
   });
+}
+
+function setGlobalCameraView(viewer) {
+  viewer.camera.cancelFlight();
+  if (viewer.scene.mode === SceneMode.MORPHING) {
+    viewer.scene.completeMorph();
+  }
+  if (viewer.scene.mode !== SceneMode.SCENE3D) {
+    viewer.scene.morphTo3D(0);
+  }
+  viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+  viewer.camera.setView({
+    destination: Cartesian3.fromDegrees(
+      initialCamera.lng,
+      initialCamera.lat,
+      initialCamera.height
+    ),
+    orientation: {
+      heading: CesiumMath.toRadians(0),
+      pitch: CesiumMath.toRadians(globalCameraPitch),
+      roll: 0
+    }
+  });
+  viewer.scene.requestRender();
 }
 
 export default function EarthGlobe({
@@ -401,7 +427,7 @@ export default function EarthGlobe({
       ),
       orientation: {
         heading: CesiumMath.toRadians(0),
-        pitch: CesiumMath.toRadians(-90),
+        pitch: CesiumMath.toRadians(globalCameraPitch),
         roll: 0
       }
     });
@@ -526,7 +552,7 @@ export default function EarthGlobe({
     }
 
     if (cameraCommand.type === "home") {
-      flyToEarth(reducedMotion ? 0 : 1.15);
+      flyToEarth();
       return;
     }
 
@@ -573,26 +599,15 @@ export default function EarthGlobe({
     viewer.scene.globe.maximumScreenSpaceError = performanceMode ? 4 : 2;
   }, [performanceMode]);
 
-  function flyToEarth(duration = 1.15) {
+  function flyToEarth() {
     const viewer = viewerRef.current;
     if (!viewer) {
       return;
     }
 
     setIsAutoRotating(false);
-    viewer.camera.flyTo({
-      destination: Cartesian3.fromDegrees(
-        initialCamera.lng,
-        initialCamera.lat,
-        initialCamera.height
-      ),
-      orientation: {
-        heading: CesiumMath.toRadians(0),
-        pitch: CesiumMath.toRadians(-90),
-        roll: 0
-      },
-      duration
-    });
+    tourRunRef.current += 1;
+    setGlobalCameraView(viewer);
   }
 
   function zoom(direction) {
@@ -602,6 +617,7 @@ export default function EarthGlobe({
     }
 
     setIsAutoRotating(false);
+    viewer.camera.cancelFlight();
     const height = Math.max(viewer.camera.positionCartographic.height, 120);
     const amount = Math.max(height * 0.42, 40);
 
@@ -619,6 +635,7 @@ export default function EarthGlobe({
     }
 
     setIsAutoRotating(false);
+    viewer.camera.cancelFlight();
     const height = Math.max(viewer.camera.positionCartographic.height, 200);
     const amount = Math.max(height * navigationStepRatio, 80);
     const actions = {
@@ -638,15 +655,20 @@ export default function EarthGlobe({
     }
 
     setIsAutoRotating(false);
+    viewer.camera.cancelFlight();
+    if (viewer.scene.mode === SceneMode.MORPHING) {
+      viewer.scene.completeMorph();
+    }
     setViewMode(mode);
 
     if (mode === "3d") {
-      viewer.scene.morphTo3D(0.8);
+      viewer.scene.morphTo3D(0);
     } else if (mode === "2d") {
-      viewer.scene.morphTo2D(0.8);
+      viewer.scene.morphTo2D(0);
     } else {
-      viewer.scene.morphToColumbusView(0.8);
+      viewer.scene.morphToColumbusView(0);
     }
+    viewer.scene.requestRender();
   }
 
   return (

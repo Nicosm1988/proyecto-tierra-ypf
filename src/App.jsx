@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import EarthGlobe from "./globe/EarthGlobe.jsx";
 import TopBar from "./components/TopBar.jsx";
-import FilterPanel from "./components/FilterPanel.jsx";
 import SidePanel from "./components/SidePanel.jsx";
 import PremiumHud from "./components/hud/PremiumHud.jsx";
 import sitesData from "./data/sites.json";
 import arcsData from "./data/arcs.json";
 import feedData from "./data/feed.json";
 import toursData from "./data/camera-tours.json";
-import { typeMeta } from "./constants.js";
 import {
   areArcsVisibleByLayers,
   isSiteVisibleByLayers,
@@ -16,20 +14,8 @@ import {
 } from "./earth/layerRegistry.js";
 import { useEarthStore } from "./store/useEarthStore.js";
 
-const initialDateRange = {
-  from: "2026-05-20",
-  to: "2026-06-19"
-};
-
-const allTypes = Object.keys(typeMeta);
-
 function parseDay(value) {
   return new Date(`${value}T00:00:00`).getTime();
-}
-
-function isInsideRange(value, dateRange) {
-  const current = parseDay(value);
-  return current >= parseDay(dateRange.from) && current <= parseDay(dateRange.to);
 }
 
 function buildArcs(sites, arcs) {
@@ -58,10 +44,7 @@ function buildArcs(sites, arcs) {
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [activeNav, setActiveNav] = useState("Radar");
-  const [activeTypes, setActiveTypes] = useState(allTypes);
   const [cameraState, setCameraState] = useState(null);
-  const [dateRange, setDateRange] = useState(initialDateRange);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState(sitesData[0]);
   const [focusKey, setFocusKey] = useState(0);
   const {
@@ -82,13 +65,9 @@ export default function App() {
 
   const visibleSites = useMemo(() => {
     return sitesData.filter((site) => {
-      return (
-        activeTypes.includes(site.type) &&
-        isInsideRange(site.date, dateRange) &&
-        isSiteVisibleByLayers(site, layerVisibility)
-      );
+      return isSiteVisibleByLayers(site, layerVisibility);
     });
-  }, [activeTypes, dateRange, layerVisibility]);
+  }, [layerVisibility]);
 
   const visibleSiteIds = useMemo(
     () => new Set(visibleSites.map((site) => site.id)),
@@ -106,9 +85,8 @@ export default function App() {
   const visibleFeed = useMemo(() => {
     return feedData
       .filter((item) => visibleSiteIds.has(item.siteId))
-      .filter((item) => isInsideRange(item.date, dateRange))
       .sort((a, b) => parseDay(b.date) - parseDay(a.date));
-  }, [dateRange, visibleSiteIds]);
+  }, [visibleSiteIds]);
 
   const metrics = useMemo(() => {
     const regions = new Set(visibleSites.map((site) => site.region));
@@ -146,21 +124,6 @@ export default function App() {
     setFocusKey((key) => key + 1);
   }
 
-  function handleToggleType(type) {
-    setActiveTypes((current) => {
-      if (current.includes(type)) {
-        return current.filter((item) => item !== type);
-      }
-
-      return [...current, type];
-    });
-  }
-
-  function handleResetFilters() {
-    setActiveTypes(allTypes);
-    setDateRange(initialDateRange);
-  }
-
   function handleRunCameraCommand(type, payload) {
     if (type === "tour" && payload?.tour?.layers) {
       payload.tour.layers.forEach((layerId) => setLayerVisibility(layerId, true));
@@ -183,27 +146,10 @@ export default function App() {
         </div>
       ) : null}
 
-      <TopBar
-        activeNav={activeNav}
-        dateRange={dateRange}
-        metrics={metrics}
-        onDateChange={setDateRange}
-        onNavChange={setActiveNav}
-      />
+      <TopBar activeNav={activeNav} metrics={metrics} onNavChange={setActiveNav} />
 
       <section className="workspace" aria-label="Radar territorial YPF">
         <div className="globe-stage">
-          <FilterPanel
-            activeTypes={activeTypes}
-            dateRange={dateRange}
-            isOpen={filtersOpen}
-            metrics={metrics}
-            onDateChange={setDateRange}
-            onReset={handleResetFilters}
-            onToggleOpen={() => setFiltersOpen((value) => !value)}
-            onToggleType={handleToggleType}
-          />
-
           <EarthGlobe
             arcs={visibleArcs}
             cameraCommand={cameraCommand}

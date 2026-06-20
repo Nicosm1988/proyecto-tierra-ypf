@@ -11,9 +11,9 @@ export const publicEnv = {
   appName: import.meta.env.VITE_APP_NAME || "ECOA Tierra YPF",
   cesiumIonToken: import.meta.env.VITE_CESIUM_ION_TOKEN || "",
   defaultCamera: {
-    height: getNumberEnv(import.meta.env.VITE_DEFAULT_HEIGHT, 14_500_000),
+    height: getNumberEnv(import.meta.env.VITE_DEFAULT_HEIGHT, 8_800_000),
     lat: getNumberEnv(import.meta.env.VITE_DEFAULT_LAT, -34.2),
-    lng: getNumberEnv(import.meta.env.VITE_DEFAULT_LON, -58.8)
+    lng: getNumberEnv(import.meta.env.VITE_DEFAULT_LON, -60.8)
   },
   enableGooglePhotorealisticTiles: getBooleanEnv(
     import.meta.env.VITE_ENABLE_GOOGLE_PHOTOREALISTIC_TILES

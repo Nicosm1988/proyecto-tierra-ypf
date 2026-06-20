@@ -1,12 +1,4 @@
-import {
-  CalendarDays,
-  Crosshair,
-  Globe2,
-  Radar,
-  Search,
-  Sparkles,
-  Users
-} from "lucide-react";
+import { Crosshair, Globe2, Radar, Search, Sparkles, Users } from "lucide-react";
 import { navItems } from "../constants.js";
 
 const iconMap = {
@@ -17,13 +9,7 @@ const iconMap = {
   Players: Users
 };
 
-export default function TopBar({
-  activeNav,
-  dateRange,
-  metrics,
-  onDateChange,
-  onNavChange
-}) {
+export default function TopBar({ activeNav, metrics, onNavChange }) {
   return (
     <header className="top-bar">
       <div className="brand-lockup" aria-label="ECOA estrategia co-aumentada">
@@ -55,42 +41,6 @@ export default function TopBar({
       </nav>
 
       <div className="top-actions">
-        <label className="date-field">
-          <span>DESDE</span>
-          <div>
-            <input
-              max={dateRange.to}
-              onChange={(event) =>
-                onDateChange((current) => ({
-                  ...current,
-                  from: event.target.value
-                }))
-              }
-              type="date"
-              value={dateRange.from}
-            />
-            <CalendarDays aria-hidden="true" size={16} />
-          </div>
-        </label>
-
-        <label className="date-field">
-          <span>HASTA</span>
-          <div>
-            <input
-              min={dateRange.from}
-              onChange={(event) =>
-                onDateChange((current) => ({
-                  ...current,
-                  to: event.target.value
-                }))
-              }
-              type="date"
-              value={dateRange.to}
-            />
-            <CalendarDays aria-hidden="true" size={16} />
-          </div>
-        </label>
-
         <div className="partner-lockup" aria-label="YPF">
           <div className="partner-chip">
             <Globe2 aria-hidden="true" size={18} />
