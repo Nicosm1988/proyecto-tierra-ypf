@@ -61,17 +61,18 @@ export default function TopBar({
   onToggleLayer,
   onTogglePerformance,
   performanceMode,
-  selectedFeature
+  selectedFeature,
+  title
 }) {
   return (
     <header className="top-bar mission-top">
-      <div className="brand-lockup" aria-label="YPF GeoEnergia 3D">
+      <div className="brand-lockup" aria-label={title}>
         <div className="brand-mark">
           <span>YPF</span>
         </div>
         <div className="brand-title">
-          <strong>YPF GeoEnergia 3D</strong>
-          <span>Mapa inmersivo de infraestructura gasifera y midstream</span>
+          <strong>{title}</strong>
+          <span>Infraestructura gasifera y midstream en entorno 3D</span>
         </div>
       </div>
 

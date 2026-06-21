@@ -10,12 +10,30 @@ import {
 import { useEarthStore } from "./store/useEarthStore.js";
 
 const allLayers = layerGroups.flatMap((group) => group.layers);
+const appTitle = "YPF GeoEnergia Operativa";
 
 function toSelectableFeature(feature, kind) {
   return {
     ...feature,
     kind
   };
+}
+
+function isRenderablePipeline(item) {
+  return (
+    item.geometryQuality === "endpoints-resueltos" &&
+    Array.isArray(item.coordinates) &&
+    item.coordinates.length >= 2
+  );
+}
+
+function normalisePipelineTitle(item) {
+  const title = item.name?.trim();
+  if (title && title !== "-") {
+    return title;
+  }
+
+  return [item.origin, item.destination].filter(Boolean).join(" - ");
 }
 
 export default function App() {
@@ -48,7 +66,16 @@ export default function App() {
 
   const visiblePipelines = useMemo(() => {
     return rvData.pipelines
-      .map((item) => toSelectableFeature(item, "pipeline"))
+      .filter(isRenderablePipeline)
+      .map((item) =>
+        toSelectableFeature(
+          {
+            ...item,
+            name: normalisePipelineTitle(item)
+          },
+          "pipeline"
+        )
+      )
       .filter((feature) => isInfrastructureVisibleByLayers(feature, layerVisibility));
   }, [layerVisibility]);
 
@@ -64,7 +91,7 @@ export default function App() {
       installations: visibleInstallations.length,
       pipelines: visiblePipelines.length,
       project,
-      resolvedRoutes: rvData.summary.endpointsResolved,
+      resolvedRoutes: rvData.pipelines.filter(isRenderablePipeline).length,
       sourceFiles: rvData.sourceFiles.length
     };
   }, [layerVisibility, visibleInstallations.length, visiblePipelines]);
@@ -98,11 +125,11 @@ export default function App() {
   return (
     <main className="app-shell">
       {showSplash ? (
-        <div className="earth-loading-screen" aria-label="Cargando YPF GeoEnergia 3D">
+        <div className="earth-loading-screen" aria-label={`Cargando ${appTitle}`}>
           <div className="loading-stars" />
           <div className="loading-orb" />
           <div className="loading-brand">
-            <strong>YPF GeoEnergia 3D</strong>
+            <strong>{appTitle}</strong>
             <p>Infraestructura gasifera, midstream y transporte territorial</p>
             <span />
           </div>
@@ -119,9 +146,10 @@ export default function App() {
         onTogglePerformance={togglePerformanceMode}
         performanceMode={performanceMode}
         selectedFeature={selectedFeature}
+        title={appTitle}
       />
 
-      <section className="workspace" aria-label="YPF GeoEnergia 3D">
+      <section className="workspace" aria-label={appTitle}>
         <div className="globe-stage">
           <EarthGlobe
             cameraCommand={cameraCommand}

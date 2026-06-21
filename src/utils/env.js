@@ -8,7 +8,7 @@ function getNumberEnv(value, fallback) {
 }
 
 export const publicEnv = {
-  appName: import.meta.env.VITE_APP_NAME || "YPF GeoEnergia 3D",
+  appName: import.meta.env.VITE_APP_NAME || "YPF GeoEnergia Operativa",
   cesiumIonToken: import.meta.env.VITE_CESIUM_ION_TOKEN || "",
   defaultCamera: {
     height: getNumberEnv(import.meta.env.VITE_DEFAULT_HEIGHT, 16_500_000),

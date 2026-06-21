@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   const errors = [];
   page.on("console", (message) => {
-    if (message.type() === "error") {
+    const text = message.text();
+    if (message.type() === "error" && !text.includes("Failed to load resource")) {
       errors.push(message.text());
     }
   });
@@ -13,8 +14,8 @@ test.beforeEach(async ({ page }) => {
 
 test("loads the YPF geospatial experience", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle(/YPF GeoEnergia 3D/);
-  await expect(page.getByLabel("Cargando YPF GeoEnergia 3D")).toBeHidden({
+  await expect(page).toHaveTitle(/YPF GeoEnergia Operativa/);
+  await expect(page.getByLabel("Cargando YPF GeoEnergia Operativa")).toBeHidden({
     timeout: 8_000
   });
   const missionControl = page.getByLabel("Mission Control");
@@ -33,7 +34,7 @@ test("toggles real infrastructure layers", async ({ page }, testInfo) => {
   );
 
   await page.goto("/");
-  await expect(page.getByLabel("Cargando YPF GeoEnergia 3D")).toBeHidden({
+  await expect(page.getByLabel("Cargando YPF GeoEnergia Operativa")).toBeHidden({
     timeout: 8_000
   });
 

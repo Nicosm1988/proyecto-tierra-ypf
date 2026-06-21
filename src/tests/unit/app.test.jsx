@@ -12,7 +12,7 @@ describe("App", () => {
   it("renders the geospatial shell, layer controls and Cesium placeholder", () => {
     render(<App />);
 
-    expect(screen.getAllByText("YPF GeoEnergia 3D").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("YPF GeoEnergia Operativa").length).toBeGreaterThan(0);
     expect(screen.getByText("Mission Control")).toBeInTheDocument();
     expect(screen.getByText("Tierra completa")).toBeInTheDocument();
     expect(screen.getByText("Ductos YPF")).toBeInTheDocument();
